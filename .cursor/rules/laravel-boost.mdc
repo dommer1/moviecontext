@@ -1,0 +1,892 @@
+---
+alwaysApply: true
+---
+<laravel-boost-guidelines>
+=== foundation rules ===
+
+# Laravel Boost Guidelines
+
+The Laravel Boost guidelines are specifically curated by Laravel maintainers for this application. These guidelines should be followed closely to enhance the user's satisfaction building Laravel applications.
+
+## Foundational Context
+This application is a Laravel application and its main Laravel ecosystems package & versions are below. You are an expert with them all. Ensure you abide by these specific packages & versions.
+
+- php - 8.4.10
+- laravel/fortify (FORTIFY) - v1
+- laravel/framework (LARAVEL) - v12
+- laravel/prompts (PROMPTS) - v0
+- livewire/flux (FLUXUI_FREE) - v2
+- livewire/livewire (LIVEWIRE) - v3
+- livewire/volt (VOLT) - v1
+- laravel/mcp (MCP) - v0
+- laravel/pint (PINT) - v1
+- laravel/sail (SAIL) - v1
+- pestphp/pest (PEST) - v4
+- phpunit/phpunit (PHPUNIT) - v12
+- tailwindcss (TAILWINDCSS) - v4
+
+
+## Conventions
+- You must follow all existing code conventions used in this application. When creating or editing a file, check sibling files for the correct structure, approach, naming.
+- Use descriptive names for variables and methods. For example, `isRegisteredForDiscounts`, not `discount()`.
+- Check for existing components to reuse before writing a new one.
+
+
+## Application Structure & Architecture
+- Stick to existing directory structure - don't create new base folders without approval.
+- Do not change the application's dependencies without approval.
+
+## Frontend Bundling
+- If the user doesn't see a frontend change reflected in the UI, it could mean they need to run `npm run build`, `npm run dev`, or `composer run dev`. Ask them.
+
+## Replies
+- Be concise in your explanations - focus on what's important rather than explaining obvious details.
+
+## Documentation Files
+- You must only create documentation files if explicitly requested by the user.
+
+
+=== boost rules ===
+
+## Laravel Boost
+- Laravel Boost is an MCP server that comes with powerful tools designed specifically for this application. Use them.
+
+## Artisan
+- Use the `list-artisan-commands` tool when you need to call an Artisan command to double check the available parameters.
+
+## URLs
+- Whenever you share a project URL with the user you should use the `get-absolute-url` tool to ensure you're using the correct scheme, domain / IP, and port.
+
+## Tinker / Debugging
+- You should use the `tinker` tool when you need to execute PHP to debug code or query Eloquent models directly.
+- Use the `database-query` tool when you only need to read from the database.
+
+## Reading Browser Logs With the `browser-logs` Tool
+- You can read browser logs, errors, and exceptions using the `browser-logs` tool from Boost.
+- Only recent browser logs will be useful - ignore old logs.
+
+## Searching Documentation (Critically Important)
+- Boost comes with a powerful `search-docs` tool you should use before any other approaches. This tool automatically passes a list of installed packages and their versions to the remote Boost API, so it returns only version-specific documentation specific for the user's circumstance. You should pass an array of packages to filter on if you know you need docs for particular packages.
+- The 'search-docs' tool is perfect for all Laravel related packages, including Laravel, Inertia, Livewire, Filament, Tailwind, Pest, Nova, Nightwatch, etc.
+- You must use this tool to search for Laravel-ecosystem documentation before falling back to other approaches.
+- Search the documentation before making code changes to ensure we are taking the correct approach.
+- Use multiple, broad, simple, topic based queries to start. For example: `['rate limiting', 'routing rate limiting', 'routing']`.
+- Do not add package names to queries - package information is already shared. For example, use `test resource table`, not `filament 4 test resource table`.
+
+### Available Search Syntax
+- You can and should pass multiple queries at once. The most relevant results will be returned first.
+
+1. Simple Word Searches with auto-stemming - query=authentication - finds 'authenticate' and 'auth'
+2. Multiple Words (AND Logic) - query=rate limit - finds knowledge containing both "rate" AND "limit"
+3. Quoted Phrases (Exact Position) - query="infinite scroll" - Words must be adjacent and in that order
+4. Mixed Queries - query=middleware "rate limit" - "middleware" AND exact phrase "rate limit"
+5. Multiple Queries - queries=["authentication", "middleware"] - ANY of these terms
+
+
+=== php rules ===
+
+## PHP
+
+- Always use curly braces for control structures, even if it has one line.
+
+### Constructors
+- Use PHP 8 constructor property promotion in `__construct()`.
+    - <code-snippet>public function __construct(public GitHub $github) { }</code-snippet>
+- Do not allow empty `__construct()` methods with zero parameters.
+
+### Type Declarations
+- Always use explicit return type declarations for methods and functions.
+- Use appropriate PHP type hints for method parameters.
+
+<code-snippet name="Explicit Return Types and Method Params" lang="php">
+protected function isAccessible(User $user, ?string $path = null): bool
+{
+    ...
+}
+</code-snippet>
+
+## Comments
+- Prefer PHPDoc blocks over comments. Never use comments within the code itself unless there is something _very_ complex going on.
+
+## PHPDoc Blocks
+- Add useful array shape type definitions for arrays when appropriate.
+
+## Enums
+- Typically, keys in an Enum should be TitleCase. For example: `FavoritePerson`, `BestLake`, `Monthly`.
+
+
+=== herd rules ===
+
+## Laravel Herd
+
+- The application is served by Laravel Herd and will be available at: https?://[kebab-case-project-dir].test. Use the `get-absolute-url` tool to generate URLs for the user to ensure valid URLs.
+- You must not run any commands to make the site available via HTTP(s). It is _always_ available through Laravel Herd.
+
+
+=== laravel/core rules ===
+
+## Do Things the Laravel Way
+
+- Use `php artisan make:` commands to create new files (i.e. migrations, controllers, models, etc.). You can list available Artisan commands using the `list-artisan-commands` tool.
+- If you're creating a generic PHP class, use `artisan make:class`.
+- Pass `--no-interaction` to all Artisan commands to ensure they work without user input. You should also pass the correct `--options` to ensure correct behavior.
+
+### Database
+- Always use proper Eloquent relationship methods with return type hints. Prefer relationship methods over raw queries or manual joins.
+- Use Eloquent models and relationships before suggesting raw database queries
+- Avoid `DB::`; prefer `Model::query()`. Generate code that leverages Laravel's ORM capabilities rather than bypassing them.
+- Generate code that prevents N+1 query problems by using eager loading.
+- Use Laravel's query builder for very complex database operations.
+
+### Model Creation
+- When creating new models, create useful factories and seeders for them too. Ask the user if they need any other things, using `list-artisan-commands` to check the available options to `php artisan make:model`.
+
+### APIs & Eloquent Resources
+- For APIs, default to using Eloquent API Resources and API versioning unless existing API routes do not, then you should follow existing application convention.
+
+### Controllers & Validation
+- Always create Form Request classes for validation rather than inline validation in controllers. Include both validation rules and custom error messages.
+- Check sibling Form Requests to see if the application uses array or string based validation rules.
+
+### Queues
+- Use queued jobs for time-consuming operations with the `ShouldQueue` interface.
+
+### Authentication & Authorization
+- Use Laravel's built-in authentication and authorization features (gates, policies, Sanctum, etc.).
+
+### URL Generation
+- When generating links to other pages, prefer named routes and the `route()` function.
+
+### Configuration
+- Use environment variables only in configuration files - never use the `env()` function directly outside of config files. Always use `config('app.name')`, not `env('APP_NAME')`.
+
+### Vite Error
+- If you receive an "Illuminate\Foundation\ViteException: Unable to locate file in Vite manifest" error, you can run `npm run build` or ask the user to run `npm run dev` or `composer run dev`.
+
+
+=== laravel/v12 rules ===
+
+## Laravel 12
+
+- Use the `search-docs` tool to get version specific documentation.
+- Since Laravel 11, Laravel has a new streamlined file structure which this project uses.
+
+### Laravel 12 Structure
+- No middleware files in `app/Http/Middleware/`.
+- `bootstrap/app.php` is the file to register middleware, exceptions, and routing files.
+- `bootstrap/providers.php` contains application specific service providers.
+- **No app\Console\Kernel.php** - use `bootstrap/app.php` or `routes/console.php` for console configuration.
+- **Commands auto-register** - files in `app/Console/Commands/` are automatically available and do not require manual registration.
+
+### Database
+- When modifying a column, the migration must include all of the attributes that were previously defined on the column. Otherwise, they will be dropped and lost.
+- Laravel 11 allows limiting eagerly loaded records natively, without external packages: `$query->latest()->limit(10);`.
+
+### Models
+- Casts can and likely should be set in a `casts()` method on a model rather than the `$casts` property. Follow existing conventions from other models.
+
+
+=== fluxui-free/core rules ===
+
+## Flux UI Free
+
+- This project is using the free edition of Flux UI. It has full access to the free components and variants, but does not have access to the Pro components.
+- Flux UI is a component library for Livewire. Flux is a robust, hand-crafted, UI component library for your Livewire applications. It's built using Tailwind CSS and provides a set of components that are easy to use and customize.
+- You should use Flux UI components when available.
+- Fallback to standard Blade components if Flux is unavailable.
+- If available, use Laravel Boost's `search-docs` tool to get the exact documentation and code snippets available for this project.
+- Flux UI components look like this:
+
+<code-snippet name="Flux UI Component Usage Example" lang="blade">
+    <flux:button variant="primary"/>
+</code-snippet>
+
+
+### Available Components
+This is correct as of Boost installation, but there may be additional components within the codebase.
+
+<available-flux-components>
+avatar, badge, brand, breadcrumbs, button, callout, checkbox, dropdown, field, heading, icon, input, modal, navbar, profile, radio, select, separator, switch, text, textarea, tooltip
+</available-flux-components>
+
+
+=== livewire/core rules ===
+
+## Livewire Core
+- Use the `search-docs` tool to find exact version specific documentation for how to write Livewire.
+- Use the `php artisan make:livewire [Posts\CreatePost]` artisan command to create new components
+- State should live on the server, with the UI reflecting it.
+- All Livewire requests hit the Laravel backend, they're like regular HTTP requests. Always validate form data, and run authorization checks in Livewire actions.
+
+## Livewire Best Practices
+- Livewire components require a single root element.
+- Use `wire:loading` and `wire:dirty` for delightful loading states.
+- Add `wire:key` in loops:
+
+    ```blade
+    @foreach ($items as $item)
+        <div wire:key="item-{{ $item->id }}">
+            {{ $item->name }}
+        </div>
+    @endforeach
+    ```
+
+- Prefer lifecycle hooks like `mount()`, `updatedFoo()` for initialization and reactive side effects:
+
+<code-snippet name="Lifecycle hook examples" lang="php">
+    public function mount(User $user) { $this->user = $user; }
+    public function updatedSearch() { $this->resetPage(); }
+</code-snippet>
+
+=== livewire/v3 rules ===
+
+## Livewire 3
+
+### Key Changes From Livewire 2
+- These things changed in Livewire 2, but may not have been updated in this application. Verify this application's setup to ensure you conform with application conventions.
+    - Use `wire:model.live` for real-time updates, `wire:model` is now deferred by default.
+    - Components now use the `App\Livewire` namespace (not `App\Http\Livewire`).
+    - Use `$this->dispatch()` to dispatch events (not `emit` or `dispatchBrowserEvent`).
+    - Use the `components.layouts.app` view as the typical layout path (not `layouts.app`).
+
+### New Directives
+- `wire:show`, `wire:transition`, `wire:cloak`, `wire:offline`, `wire:target` are available for use. Use the documentation to find usage examples.
+
+### Alpine
+- Alpine is now included with Livewire, don't manually include Alpine.js.
+- Plugins included with Alpine: persist, intersect, collapse, and focus.
+
+### Lifecycle Hooks
+- You can listen for `livewire:init` to hook into Livewire initialization, and `fail.status === 419` for the page expiring:
+
+<code-snippet name="livewire:load example" lang="js">
+document.addEventListener('livewire:init', function () {
+    Livewire.hook('request', ({ fail }) => {
+        if (fail && fail.status === 419) {
+            alert('Your session expired');
+        }
+    });
+
+    Livewire.hook('message.failed', (message, component) => {
+        console.error(message);
+    });
+});
+</code-snippet>
+
+
+=== volt/core rules ===
+
+## Livewire Volt
+
+- This project uses Livewire Volt for interactivity within its pages. New pages requiring interactivity must also use Livewire Volt. There is documentation available for it.
+- Make new Volt components using `php artisan make:volt [name] [--test] [--pest]`
+- Volt is a **class-based** and **functional** API for Livewire that supports single-file components, allowing a component's PHP logic and Blade templates to co-exist in the same file
+- Livewire Volt allows PHP logic and Blade templates in one file. Components use the `@livewire("volt-anonymous-fragment-eyJuYW1lIjoidm9sdC1hbm9ueW1vdXMtZnJhZ21lbnQtYmQ5YWJiNTE3YWMyMTgwOTA1ZmUxMzAxODk0MGJiZmIiLCJwYXRoIjoic3RvcmFnZVwvZnJhbWV3b3JrXC92aWV3c1wvMTUxYWRjZWRjMzBhMzllOWIxNzQ0ZDRiMWRjY2FjYWIuYmxhZGUucGhwIn0=", Livewire\Volt\Precompilers\ExtractFragments::componentArguments([...get_defined_vars(), ...array (
+)]))
+</code-snippet>
+
+
+### Volt Class Based Component Example
+To get started, define an anonymous class that extends Livewire\Volt\Component. Within the class, you may utilize all of the features of Livewire using traditional Livewire syntax:
+
+
+<code-snippet name="Volt Class-based Volt Component Example" lang="php">
+use Livewire\Volt\Component;
+
+new class extends Component {
+    public $count = 0;
+
+    public function increment()
+    {
+        $this->count++;
+    }
+} ?>
+
+<div>
+    <h1>{{ $count }}</h1>
+    <button wire:click="increment">+</button>
+</div>
+</code-snippet>
+
+### Common Patterns
+
+
+<code-snippet name="CRUD With Volt" lang="php">
+<?php
+
+use App\Models\Product;
+use function Livewire\Volt\{state, computed};
+
+state(['editing' => null, 'search' => '']);
+
+$products = computed(fn() => Product::when($this->search,
+    fn($q) => $q->where('name', 'like', "%{$this->search}%")
+)->get());
+
+$edit = fn(Product $product) => $this->editing = $product->id;
+$delete = fn(Product $product) => $product->delete();
+
+?>
+
+<!-- HTML / UI Here -->
+</code-snippet>
+
+<code-snippet name="Real-Time Search With Volt" lang="php">
+    <flux:input
+        wire:model.live.debounce.300ms="search"
+        placeholder="Search..."
+    />
+</code-snippet>
+
+<code-snippet name="Loading States With Volt" lang="php">
+    <flux:button wire:click="save" wire:loading.attr="disabled">
+        <span wire:loading.remove>Save</span>
+        <span wire:loading>Saving...</span>
+    </flux:button>
+</code-snippet>
+
+
+=== pint/core rules ===
+
+## Laravel Pint Code Formatter
+
+- You must run `vendor/bin/pint --dirty` before finalizing changes to ensure your code matches the project's expected style.
+- Do not run `vendor/bin/pint --test`, simply run `vendor/bin/pint` to fix any formatting issues.
+
+=== tailwindcss/core rules ===
+
+## Tailwind Core
+
+- Use Tailwind CSS classes to style HTML, check and use existing tailwind conventions within the project before writing your own.
+- Offer to extract repeated patterns into components that match the project's conventions (i.e. Blade, JSX, Vue, etc..)
+- Think through class placement, order, priority, and defaults - remove redundant classes, add classes to parent or child carefully to limit repetition, group elements logically
+- You can use the `search-docs` tool to get exact examples from the official documentation when needed.
+
+### Spacing
+- When listing items, use gap utilities for spacing, don't use margins.
+
+    <code-snippet name="Valid Flex Gap Spacing Example" lang="html">
+        <div class="flex gap-8">
+            <div>Superior</div>
+            <div>Michigan</div>
+            <div>Erie</div>
+        </div>
+    </code-snippet>
+
+
+### Dark Mode
+- If existing pages and components support dark mode, new pages and components must support dark mode in a similar way, typically using `dark:`.
+
+
+=== tailwindcss/v4 rules ===
+
+## Tailwind 4
+
+- Always use Tailwind CSS v4 - do not use the deprecated utilities.
+- `corePlugins` is not supported in Tailwind v4.
+- In Tailwind v4, you import Tailwind using a regular CSS `@import` statement, not using the `@tailwind` directives used in v3:
+
+<code-snippet name="Tailwind v4 Import Tailwind Diff" lang="diff">
+   - @tailwind base;
+   - @tailwind components;
+   - @tailwind utilities;
+   + @import "tailwindcss";
+</code-snippet>
+
+
+### Replaced Utilities
+- Tailwind v4 removed deprecated utilities. Do not use the deprecated option - use the replacement.
+- Opacity values are still numeric.
+
+| Deprecated |	Replacement |
+|------------+--------------|
+| bg-opacity-* | bg-black/* |
+| text-opacity-* | text-black/* |
+| border-opacity-* | border-black/* |
+| divide-opacity-* | divide-black/* |
+| ring-opacity-* | ring-black/* |
+| placeholder-opacity-* | placeholder-black/* |
+| flex-shrink-* | shrink-* |
+| flex-grow-* | grow-* |
+| overflow-ellipsis | text-ellipsis |
+| decoration-slice | box-decoration-slice |
+| decoration-clone | box-decoration-clone |
+
+
+=== .ai/project-overview rules ===
+
+# Technical Specification: AI-Powered Czech Film Blog Platform
+
+## Project Overview
+Automated Czech film blog that generates original content from multiple sources using AI agents with distinct writing personalities. The platform operates autonomously - no admin panel needed. Everything is generated automatically through AI including content extraction, article writing, and publishing.
+
+## Tech Stack
+- **Backend**: Laravel (latest stable)
+- **Admin Panel**: FilamentPHP 4
+- **Frontend**: TailwindCSS, Livewire, Alpine.js
+- **Database**: MySQL/PostgreSQL
+- **Queue System**: Laravel Queue (Redis recommended)
+- **Scheduling**: Laravel Task Scheduler
+- **AI Integration**: Prismphp
+  - OpenAI API / Anthropic Claude API
+  - Cheap model for extraction: GPT-3.5-turbo or Claude Haiku
+  - Premium model for content generation: GPT-4-turbo or Claude Sonnet
+
+## Design Reference
+Visual design should be inspired by: https://magazinkontext.sk/
+- Modern, clean layout
+- Strong imagery
+- Clear typography
+- Responsive grid system
+
+---
+
+## Core Functionality
+
+### 1. Content Sources System
+
+**Database Structure:**
+- Store list of source websites (URLs)
+- Each source has: name, URL, type (news/review/streaming), language (cs/en/sk), active status
+- Track when each source was last checked
+- **NO CSS selectors needed** - AI extracts content automatically
+
+**Key Point:** Just add URL to database, AI handles everything else. No manual configuration per website.
+
+### 2. AI Author Personas
+
+Create 3 fictional Czech authors with distinct personalities:
+
+**Author 1: Professional Film Critic**
+- Writing style: Analytical, sophisticated, uses film theory
+- Specialization: Drama, indie films, auteur cinema
+- Tone: Professional but accessible
+- Focus: Deep analysis, cinematography, director's vision
+
+**Author 2: Enthusiastic Pop Culture Blogger**
+- Writing style: Conversational, witty, pop culture references
+- Specialization: Blockbusters, franchises, streaming content
+- Tone: Casual, friendly, relatable
+- Focus: Entertainment value, "worth watching?", streaming guides
+
+**Author 3: Skeptical Genre Expert**
+- Writing style: Critical, sarcastic, contrarian views
+- Specialization: Horror, thriller, sci-fi
+- Tone: Dark humor, honest, not afraid of unpopular opinions
+- Focus: Genre analysis, hidden gems, controversial takes
+
+Each author has avatar, bio, and detailed personality prompt stored in database.
+
+### 3. Automated Nightly Pipeline
+
+**23:00 - AI-Powered Scraping**
+- System visits all active source websites
+- Downloads HTML of each page
+- Sends HTML to AI with prompt: "Extract all film-related articles from this page"
+- AI returns structured data for each article found:
+  - Title
+  - Content summary (first 2-3 paragraphs)
+  - Publication date
+  - Author name
+  - Featured image URL
+  - Article URL
+  - Type (news/review/interview/streaming)
+- System validates and stores extracted articles in database
+- **Advantage:** No CSS selectors needed, works on any website structure, resilient to design changes
+
+**00:00 - Content Selection**
+- AI analyzes all scraped articles from last 24 hours
+- Selects 1-2 most interesting articles based on:
+  - Topic diversity (avoid duplicates)
+  - Trending films (check IMDb/ČSFD popularity)
+  - Czech relevance (local release dates, streaming availability)
+  - Recency
+- Marks selected articles for generation
+
+**01:00 - Article Generation**
+For each selected article:
+
+1. **Research Phase:**
+   - Gather additional info from IMDb, ČSFD
+   - Check streaming availability in Czech Republic
+   - Find related films, director info, cast details
+   - Collect fun facts and trivia
+
+2. **Author Assignment:**
+   - Match article topic with author specialization
+   - For reviews: randomly decide if single author or roundtable (3 authors discussing)
+
+3. **AI Content Generation:**
+   - Send comprehensive prompt to premium AI model
+   - Prompt includes: author personality, research data, Czech context requirements
+   - AI generates 800-1200 word original article in Czech
+   - Article must include:
+     - Original perspective (not translation)
+     - Czech context (where to watch, dubbing info, local release)
+     - 1-2 fun facts or unique insights
+     - Personal rating/recommendation
+     - Natural, human-like writing in author's style
+
+4. **Content Enhancement:**
+   - Generate SEO meta description
+   - Create URL slug from title
+   - Download and optimize featured image
+   - Extract/generate article tags
+   - Add streaming platform information
+   - Add "Zajímavost" (fun fact) section
+
+5. **Special Format - Roundtable Reviews:**
+   - For some reviews, generate multi-author format
+   - Each of 3 authors gives their perspective (200-300 words)
+   - Show disagreements and different viewpoints
+   - Makes content feel more authentic and diverse
+
+**02:00 - Quality Validation**
+Automated checks before publishing:
+- Minimum 600 words
+- Language is Czech (not accidentally English)
+- Has featured image
+- Plagiarism check (must be <30% similar to source)
+- Has at least 3 tags
+- All metadata present
+
+If passes all checks: publish immediately
+If fails: save as draft and log for manual review
+
+---
+
+## Database Schema
+
+### sources
+- Source website information
+- No CSS selectors stored
+- Just basic info: name, URL, type, language
+
+### scraped_articles
+- Articles extracted by AI from sources
+- Stores: title, content summary, author, date, image URL, original URL
+- Includes HTML snapshot for reference
+- Tracks processing status
+
+### articles
+- Final generated articles ready for publishing
+- Complete content, metadata, SEO data
+- References to source articles used
+- Author assignment, publication date, view count
+
+### article_metadata
+- Extended info: IMDb ID, ČSFD URL, genres
+- Czech release date
+- Streaming platform availability
+- Fun facts
+
+### authors
+- 3 fictional author profiles
+- Detailed personality descriptions
+- Writing style prompts for AI
+- Avatar, bio, specialization
+
+### tags
+- Article tagging system
+- Genre, actor names, directors, themes
+
+---
+
+## Frontend Design
+
+### Homepage
+- **Hero Section:** Latest featured article with large image
+- **Grid Layout:** 3 columns on desktop, 1 on mobile
+- **Article Cards:** Each shows image, title, author avatar, date, short excerpt
+- **Sidebar:** Popular articles, author profiles, category filters
+- **Dark/Light Mode:** Toggle option
+
+### Article Page Layout
+
+**Header:**
+- Large featured image (full width)
+- Article category badge
+- Main title (large, bold)
+- Author info: avatar, name, date, read time
+
+**Main Content:**
+- Article text in readable typography
+- Clean paragraph spacing
+- Proper heading hierarchy
+
+**"Kde sledovat" Section:**
+- Highlighted box with streaming platform badges
+- Clickable buttons linking to platforms (affiliate links)
+- Czech release date info
+
+**"Zajímavost" Box:**
+- Special highlighted section with fun fact
+- Distinctive styling (colored border or background)
+
+**Bottom Elements:**
+- Article tags (clickable)
+- Share buttons
+- Related articles (3 suggestions)
+
+**Design Principles:**
+- Modern, clean aesthetic
+- Strong use of imagery
+- Readable typography
+- Smooth hover effects and transitions
+- Mobile-first responsive design
+
+### Livewire Components Needed
+- ArticleCard (for grids)
+- ArticleGrid (with filtering)
+- SearchBar (with live results)
+- CategoryFilter
+- AuthorProfile display
+
+---
+
+## SEO & Monetization
+
+### SEO Features
+- Auto-generated sitemap (updates daily)
+- Schema.org Article markup
+- Open Graph tags for social sharing
+- Twitter Card tags
+- Canonical URLs
+- Optimized images with alt tags
+- Internal linking between related articles
+
+### URL Structure
+- `/{slug}` - Main articles
+- `/recenze/{slug}` - Reviews
+- `/novinky/{slug}` - News
+- `/pruvodce/{slug}` - Guides
+- `/autor/{author-slug}` - Author pages
+- `/tag/{tag-slug}` - Tag pages
+
+### Monetization
+**Google AdSense:**
+- Ad placement after 2-3 paragraphs in articles
+- Sidebar ads
+- Between article cards on homepage
+- Follow ad density guidelines
+
+**Affiliate Links:**
+- Streaming platform buttons (Netflix, HBO Max, Disney+, etc.)
+- Affiliate tracking for clicks
+- Clean, non-intrusive placement
+
+---
+
+## Monitoring Dashboard
+
+Simple password-protected page at `/monitoring`
+
+**Display:**
+- Last 20 generated articles (title, status, author, date)
+- Scraping status (last run time, success/failure)
+- AI API usage statistics (tokens used, estimated cost)
+- Article performance (total published, views, top 10)
+- Error log (last 50 errors)
+
+**Manual Actions Available:**
+- Publish draft articles manually
+- Trigger scraping on demand
+- Test extraction on custom URL
+- Regenerate specific article
+
+---
+
+## Laravel Commands
+
+### Scraping
+- `scrape:sources` - Run all active sources
+- `scrape:single {source_id}` - Test single source
+- `scrape:test {url}` - Test AI extraction on any URL
+
+### Content Generation
+- `content:select` - Select articles for generation
+- `content:generate` - Generate all selected articles
+- `content:generate-single {id}` - Generate one specific article
+
+### Validation & Maintenance
+- `content:validate` - Validate pending articles
+- `content:cleanup-old-scraped` - Delete old scraped data (30+ days)
+- `sitemap:generate` - Regenerate sitemap
+- `images:optimize` - Optimize all images
+
+---
+
+## Automated Schedule
+
+**Daily Tasks:**
+- 23:00 - Scrape sources
+- 00:00 - Select content
+- 01:00 - Generate articles (can take up to 1 hour)
+- 02:00 - Validate and publish
+- Daily (anytime) - Regenerate sitemap
+
+**Weekly Tasks:**
+- Sunday 03:00 - Cleanup old scraped articles
+- Sunday 04:00 - Optimize images
+
+---
+
+## Configuration Settings
+
+**Scraping Settings:**
+- User agent rotation (multiple agents)
+- Timeout: 30 seconds per request
+- Delay between requests: 3-5 seconds
+- Max articles per source: 10 per run
+
+**AI Settings:**
+- Extraction model: GPT-3.5-turbo (cheap)
+- Generation model: GPT-4-turbo (premium)
+- Temperature: 0.3 for extraction (precise), 0.8 for generation (creative)
+- Daily spending limit: 50 USD
+
+**Content Settings:**
+- Articles generated per night: randomly 1-2
+- Minimum word count: 600 words
+- Maximum word count: 1500 words
+- Roundtable probability: 30% for reviews
+
+**Quality Thresholds:**
+- Plagiarism threshold: <30% similarity to source
+- Minimum uniqueness score: 70%
+
+---
+
+## Implementation Phases
+
+**Phase 1: Core Infrastructure (Week 1)**
+- Laravel setup with all packages
+- Database schema and migrations
+- Basic models (Source, Article, Author, etc.)
+- AI service integration classes
+
+**Phase 2: Scraping & Extraction (Week 1-2)**
+- Implement AI-powered extraction
+- Test on 3-5 real websites
+- Error handling and logging
+- Validation of extracted data
+
+**Phase 3: Content Generation (Week 2)**
+- Author personas in database
+- Research data gathering (IMDb, ČSFD)
+- AI generation pipeline
+- Quality validation system
+
+**Phase 4: Automation (Week 2-3)**
+- Laravel scheduler configuration
+- All cron jobs setup
+- End-to-end pipeline testing
+- Error notifications (email alerts)
+
+**Phase 5: Frontend (Week 3-4)**
+- TailwindCSS base layout
+- Homepage design
+- Article page template
+- Author and tag pages
+- Livewire components
+- Mobile responsiveness
+
+**Phase 6: SEO & Monetization (Week 4)**
+- SEO optimization
+- Schema markup
+- Sitemap generation
+- AdSense integration
+- Affiliate link system
+
+**Phase 7: Testing & Launch (Week 5)**
+- Full pipeline testing
+- Performance optimization
+- Security review
+- Monitoring setup
+- Soft launch with careful monitoring
+
+---
+
+## Critical Requirements
+
+### AI Extraction Intelligence
+- AI must identify articles vs navigation/ads/comments
+- Extract only relevant film content
+- Handle different website structures automatically
+- Works without any manual CSS selector configuration
+- Resilient to website redesigns
+
+### Content Originality
+- **NEVER copy-paste from source articles**
+- AI must completely rewrite in own words
+- Add Czech context that wasn't in original
+- Include personal perspective from author persona
+- Minimum 70% uniqueness compared to source
+
+### Czech Localization
+Every article must include:
+- Where to watch in Czech Republic (streaming platforms)
+- Czech release date
+- Information about Czech dubbing/subtitles
+- Local context and relevance
+
+### Quality Standards
+- Natural, human-like writing
+- No robotic or generic AI language
+- Each author has consistent voice
+- Grammatically correct Czech
+- Engaging, not boring
+- SEO-friendly but not keyword-stuffed
+
+### Performance
+- All heavy operations in queues
+- Caching for article pages
+- Optimized images (WebP format, lazy loading)
+- Fast page loads (<2 seconds)
+
+### Legal Compliance
+- Store source URLs as references
+- Transform content, don't copy
+- Optional disclaimer about AI-generated content
+- Respect robots.txt on source sites
+- Rate limiting to avoid being blocked
+
+### Cost Management
+- Monitor AI API costs daily
+- Alert if approaching spending limit
+- Use cheap models for extraction
+- Use premium models only for generation
+- Cache where possible to avoid redundant calls
+
+---
+
+## Success Metrics
+
+After 30 days of operation:
+- 30-60 published articles
+- All articles unique (pass plagiarism check)
+- Zero manual intervention needed (fully automated)
+- Fast page loads
+- Mobile responsive
+- SEO-optimized
+- AdSense approved
+- Monitoring dashboard working
+
+---
+
+## Key Advantages of This Approach
+
+1. **Zero Maintenance:** No CSS selectors to update when sites redesign
+2. **Scalable:** Add new sources by just adding URL to database
+3. **Authentic:** 3 different writing styles make it feel like real blog
+4. **Czech-Focused:** All content localized for Czech audience
+5. **Fully Automated:** No daily management needed
+6. **Cost-Effective:** Smart use of cheap vs premium AI models
+7. **Quality Control:** Automated validation before publishing
+8. **SEO-Optimized:** Built-in best practices
+9. **Monetization-Ready:** AdSense and affiliate integration
+
+---
+
+This specification provides complete guidance for building the platform without requiring any manual content management or daily intervention. The system runs autonomously, generating and publishing quality Czech film content every night.
+</laravel-boost-guidelines>
