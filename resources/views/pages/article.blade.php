@@ -351,8 +351,8 @@
                 <div class="space-y-6 sm:space-y-12">
                     <h2 class="text-3xl leading-tight font-bold lg:text-4xl">Mohlo by vás zaujímať</h2>
 
-                    <div class="swiper js-similar-posts-swiper swiper-initialized swiper-horizontal swiper-backface-hidden" style="height: 436px;">
-                        <ul class="swiper-wrapper" style="transition-duration: 0ms;">
+                    <div class="swiper js-similar-posts-swiper">
+                        <ul class="swiper-wrapper">
                             @php
                                 $similarArticles = \App\Models\Article::with(['author', 'tags'])
                                     ->published()
@@ -361,21 +361,13 @@
                                     ->get();
                             @endphp
                             @foreach($similarArticles as $similarArticle)
-                                <li class="swiper-slide" style="width: 280.381px; margin-right: 32px;">
+                                <li class="swiper-slide">
                                     <article class="space-y-6">
                                         <a href="{{ route('article.show', $similarArticle->slug) }}" class="block h-50 overflow-hidden">
                                             <img src="https://via.placeholder.com/400x225?text={{ urlencode($similarArticle->title) }}" alt="" class="size-full object-cover transition-transform duration-300 hover:scale-105">
                                         </a>
 
-                                        @if($similarArticle->tags->count() > 0)
-                                            <ul class="flex flex-wrap items-center gap-2">
-                                                <li>
-                                                    <a href="#" class="category-badge">
-                                                        {{ $similarArticle->tags->first()->name }}
-                                                    </a>
-                                                </li>
-                                            </ul>
-                                        @endif
+                                        <x-tag-list :tags="$similarArticle->tags" />
 
                                         <h3>
                                             <a href="{{ route('article.show', $similarArticle->slug) }}" class="text-xl font-bold transition-colors duration-150 hover:text-green-400 sm:text-2xl">
@@ -389,12 +381,7 @@
                     </div>
 
                     <div class="flex justify-between items-center">
-                        <div class="swiper-pagination js-similar-posts-swiper-pagination swiper-pagination-bullets swiper-pagination-horizontal">
-                            <span class="swiper-pagination-bullet"></span>
-                            <span class="swiper-pagination-bullet"></span>
-                            <span class="swiper-pagination-bullet"></span>
-                            <span class="swiper-pagination-bullet swiper-pagination-bullet-active"></span>
-                        </div>
+                        <div class="swiper-pagination js-similar-posts-swiper-pagination"></div>
 
                         <div class="flex gap-x-4 splide__arrows">
                             <button type="button" class="hidden justify-center items-center size-12 text-blue border border-blue transition-colors duration-150 hover:enabled:text-white hover:enabled:bg-green-400 hover:enabled:border-green-400 disabled:opacity-60 sm:flex js-similar-posts-swiper-button-prev">
@@ -403,7 +390,7 @@
                                 </svg>
                             </button>
 
-                            <button type="button" class="hidden justify-center items-center size-12 text-blue border border-blue transition-colors duration-150 hover:enabled:text-white hover:enabled:bg-green-400 hover:enabled:border-green-400 disabled:opacity-60 sm:flex js-similar-posts-swiper-button-next swiper-button-disabled" disabled="">
+                            <button type="button" class="hidden justify-center items-center size-12 text-blue border border-blue transition-colors duration-150 hover:enabled:text-white hover:enabled:bg-green-400 hover:enabled:border-green-400 disabled:opacity-60 sm:flex js-similar-posts-swiper-button-next">
                                 <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                 </svg>
