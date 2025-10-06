@@ -1,66 +1,51 @@
-<!DOCTYPE html>
-<html lang="sk">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+@extends('layouts.app')
 
-    <title>{{ $tag->name }} - Movie Context</title>
-    <meta name="description" content="{{ $tag->description ?: 'Články v kategórii ' . $tag->name . ' na Movie Context' }}">
+@section('meta')
+    <!-- Schema.org JSON-LD -->
+    @php
+        $jsonLd = [
+            "@context" => "https://schema.org",
+            "@type" => "CollectionPage",
+            "name" => $tag->name,
+            "description" => $tag->description ?: 'Články v kategórii ' . $tag->name . ' na Movie Context',
+            "url" => url()->current(),
+            "mainEntity" => [
+                "@type" => "ItemList",
+                "numberOfItems" => $articles->total(),
+                "itemListElement" => $articles->map(function ($article, $index) {
+                    return [
+                        "@type" => "ListItem",
+                        "position" => $index + 1,
+                        "url" => route('article.show', $article->slug),
+                        "name" => $article->title
+                    ];
+                })->values()->all()
+            ],
+            "breadcrumb" => [
+                "@type" => "BreadcrumbList",
+                "itemListElement" => [
+                    [
+                        "@type" => "ListItem",
+                        "position" => 1,
+                        "name" => "Domov",
+                        "item" => url('/')
+                    ],
+                    [
+                        "@type" => "ListItem",
+                        "position" => 2,
+                        "name" => $tag->name,
+                        "item" => url()->current()
+                    ]
+                ]
+            ]
+        ];
+    @endphp
+    <script type="application/ld+json">
+        {!! json_encode($jsonLd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}
+    </script>
+@endsection
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=inter:400,500,600&display=swap" rel="stylesheet">
-
-    <!-- Styles -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @livewireStyles
-
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .category-badge { display: inline-block; font-size: 0.875rem; font-weight: 700; padding: 0.125rem 0.5rem; background: #dcfce7; color: #166534; transition: all 0.15s; }
-        .category-badge:hover { background: #16a34a; color: white; }
-    </style>
-</head>
-<body class="bg-white text-gray-900">
-    <!-- Navigation -->
-    <header class="fixed top-0 inset-x-0 z-30">
-        <div class="relative bg-white z-20">
-            <div class="max-w-7xl w-full px-6 mx-auto">
-                <div class="flex justify-between items-center gap-x-6 h-14 sm:h-18">
-                    <a href="{{ route('home') }}" class="shrink-0">
-                        <div class="font-bold text-xl">Movie Context</div>
-                    </a>
-
-                    <x-navigation />
-
-                    <div class="flex items-center gap-x-6">
-                        <div class="hidden xl:flex items-center gap-x-4">
-                            <button type="button" class="flex justify-center items-center size-10 border border-blue transition-colors duration-150 hover:text-white hover:bg-blue">
-                                <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                </svg>
-                            </button>
-                            <button type="button" class="flex justify-center items-center size-10 border border-blue transition-colors duration-150 hover:text-white hover:bg-blue">
-                                <svg class="size-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                                </svg>
-                            </button>
-                            <a href="#" class="flex items-center h-8 font-bold text-white bg-green-400 px-4 border border-green-400 transition-colors duration-150 hover:text-green-400 hover:bg-white sm:h-10 sm:px-5">
-                                Predplatné
-                            </a>
-                        </div>
-
-                        <button type="button" class="flex justify-center items-center size-6 text-blue transition-colors duration-150 hover:text-green-400 xl:hidden">
-                            <svg class="size-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
+@section('content')
 
     <!-- Main Content -->
     <main class="py-12 mt-14 sm:mt-18 lg:py-20">
@@ -273,10 +258,4 @@
                 </div>
             </div>
         </div>
-    </footer>
-
-    <!-- Scripts -->
-    @livewireScripts
-    @stack('scripts')
-</body>
-</html>
+@endsection
