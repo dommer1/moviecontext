@@ -8,31 +8,38 @@ use Prism\Prism\Prism;
 
 class AIService
 {
-    private Prism $prism;
-
-    public function __construct()
-    {
-        $this->prism = Prism::builder()
-            ->withProvider(Provider::OpenAI)
-            ->withModel('gpt-3.5-turbo')
-            ->build();
-    }
-
     /**
      * Extract articles from HTML content using AI
      */
     public function extractArticlesFromHtml(string $html, string $sourceUrl): array
     {
         try {
-            $response = $this->prism->generateText(
-                systemPrompt: $this->getExtractionSystemPrompt(),
-                prompt: $this->getExtractionPrompt($html, $sourceUrl)
-            );
+            // Clean and truncate HTML content to fit within token limits
+            $cleanedContent = $this->cleanHtmlContent($html);
 
-            $result = json_decode($response->text, true);
+            $response = Prism::text()
+                ->using(Provider::OpenAI, 'gpt-3.5-turbo')
+                ->withSystemPrompt($this->getExtractionSystemPrompt())
+                ->withPrompt($this->getExtractionPrompt($cleanedContent, $sourceUrl))
+                ->generate();
+
+            // Clean the response - remove markdown code blocks if present
+            $cleanedResponse = trim($response->text);
+            if (str_starts_with($cleanedResponse, '```json')) {
+                $cleanedResponse = substr($cleanedResponse, 7);
+            }
+            if (str_starts_with($cleanedResponse, '```')) {
+                $cleanedResponse = substr($cleanedResponse, 3);
+            }
+            if (str_ends_with($cleanedResponse, '```')) {
+                $cleanedResponse = substr($cleanedResponse, 0, -3);
+            }
+            $cleanedResponse = trim($cleanedResponse);
+
+            $result = json_decode($cleanedResponse, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new Exception('Invalid JSON response from AI');
+                throw new Exception('Invalid JSON response from AI: ' . json_last_error_msg() . '. Raw response: ' . substr($response->text, 0, 500));
             }
 
             return $result['articles'] ?? [];
@@ -47,16 +54,11 @@ class AIService
     public function generateArticle(array $data): string
     {
         try {
-            // Switch to premium model for generation
-            $prism = Prism::builder()
-                ->withProvider(Provider::OpenAI)
-                ->withModel('gpt-4-turbo')
-                ->build();
-
-            $response = $prism->generateText(
-                systemPrompt: $this->getGenerationSystemPrompt($data['author']),
-                prompt: $this->getGenerationPrompt($data)
-            );
+            $response = Prism::text()
+                ->using(Provider::OpenAI, 'gpt-4-turbo')
+                ->withSystemPrompt($this->getGenerationSystemPrompt($data['author']))
+                ->withPrompt($this->getGenerationPrompt($data))
+                ->generate();
 
             return $response->text;
         } catch (Exception $e) {
@@ -70,10 +72,11 @@ class AIService
     public function getResearchData(string $title, string $originalContent): array
     {
         try {
-            $response = $this->prism->generateText(
-                systemPrompt: 'You are a film research assistant. Provide factual information about films.',
-                prompt: $this->getResearchPrompt($title, $originalContent)
-            );
+            $response = Prism::text()
+                ->using(Provider::OpenAI, 'gpt-3.5-turbo')
+                ->withSystemPrompt('You are a film research assistant. Provide factual information about films.')
+                ->withPrompt($this->getResearchPrompt($title, $originalContent))
+                ->generate();
 
             $result = json_decode($response->text, true);
 
@@ -87,24 +90,41 @@ class AIService
         }
     }
 
+    private function cleanHtmlContent(string $html): string
+    {
+        // Remove script and style tags
+        $html = preg_replace('/<script[^>]*>.*?<\/script>/is', '', $html);
+        $html = preg_replace('/<style[^>]*>.*?<\/style>/is', '', $html);
+
+        // Extract text content
+        $text = strip_tags($html);
+
+        // Remove excessive whitespace
+        $text = preg_replace('/\s+/', ' ', $text);
+
+        // Limit to reasonable size (around 10,000 characters should fit in gpt-3.5-turbo context)
+        return substr(trim($text), 0, 10000);
+    }
+
     private function getExtractionSystemPrompt(): string
     {
         return 'You are an expert at extracting film-related articles from web pages. '.
-               'You analyze HTML content and identify articles about movies, reviews, news, and streaming. '.
-               'Return only valid JSON with structured article data.';
+               'You analyze text content and identify articles about movies, reviews, news, and streaming. '.
+               'Return ONLY valid JSON without any markdown formatting, code blocks, or explanations. '.
+               'If no film articles are found, return {"articles": []}.';
     }
 
     private function getExtractionPrompt(string $html, string $sourceUrl): string
     {
         return <<<PROMPT
-Analyze this HTML content from {$sourceUrl} and extract all film-related articles.
+Analyze this text content from {$sourceUrl} and extract all film-related articles.
 
 Requirements:
 - Only extract articles about movies, film reviews, news, or streaming content
 - Skip navigation, ads, comments, and non-film content
 - Extract the main article content (first 2-3 paragraphs)
 - Include publication date if available
-- Return in this exact JSON format:
+- Return ONLY valid JSON in this exact format without any additional text:
 
 {
   "articles": [
