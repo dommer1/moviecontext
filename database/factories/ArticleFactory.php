@@ -16,8 +16,19 @@ class ArticleFactory extends Factory
      */
     public function definition(): array
     {
+        $title = $this->faker->sentence(8);
+        $content = $this->faker->paragraphs(10, true);
+
         return [
-            //
+            'title' => $title,
+            'slug' => \Illuminate\Support\Str::slug($title),
+            'content' => $content,
+            'excerpt' => $this->faker->paragraph(2),
+            'seo_title' => $title,
+            'seo_description' => $this->faker->paragraph(1),
+            'published_at' => $this->faker->dateTimeBetween('-30 days', 'now'),
+            'view_count' => $this->faker->numberBetween(0, 10000),
+            'author_id' => \App\Models\Author::factory(),
         ];
     }
 }
