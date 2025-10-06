@@ -20,6 +20,16 @@ class TagsTable
                     ->sortable(),
                 TextColumn::make('slug')
                     ->searchable(),
+                TextColumn::make('description')
+                    ->limit(50)
+                    ->tooltip(function (TextColumn $column): ?string {
+                        $state = $column->getState();
+                        if (strlen($state) <= 50) {
+                            return null;
+                        }
+
+                        return $state;
+                    }),
                 TextColumn::make('type')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {

@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>{{ $tag->name }} - Movie Context</title>
-    <meta name="description" content="Články v kategórii {{ $tag->name }}">
+    <meta name="description" content="{{ $tag->description ?: 'Články v kategórii ' . $tag->name . ' na Movie Context' }}">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -73,6 +73,12 @@
                                 <div class="flex items-center justify-start gap-4 flex-row">
                                     <h1 class="text-3xl font-bold leading-none sm:text-4xl visited:text-white">{{ $tag->name }}</h1>
                                 </div>
+
+                                @if($tag->description)
+                                    <div class="text-lg leading-relaxed text-gray-600 max-w-4xl">
+                                        <p>{{ $tag->description }}</p>
+                                    </div>
+                                @endif
                             </div>
                         </div>
 

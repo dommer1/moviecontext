@@ -17,6 +17,9 @@ class TagForm
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(255),
+                \Filament\Forms\Components\Textarea::make('description')
+                    ->rows(3)
+                    ->columnSpanFull(),
                 \Filament\Forms\Components\Select::make('type')
                     ->options([
                         'genre' => 'Žáner',
