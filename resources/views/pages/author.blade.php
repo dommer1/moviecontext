@@ -5,8 +5,80 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ $author->name }} - Movie Context</title>
-    <meta name="description" content="{{ $author->bio }}">
+    <title>{{ $author->name }} - Články autora na Movie Context</title>
+    <meta name="description" content="{{ Str::limit($author->bio, 155) }}">
+    <link rel="canonical" href="{{ url()->current() }}">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="profile">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:title" content="{{ $author->name }} - Články autora na Movie Context">
+    <meta property="og:description" content="{{ Str::limit($author->bio, 155) }}">
+    <meta property="og:image" content="{{ $author->avatar_path ? asset('storage/' . $author->avatar_path) : asset('images/default-author.jpg') }}">
+    <meta property="og:image:width" content="400">
+    <meta property="og:image:height" content="400">
+    <meta property="og:site_name" content="Movie Context">
+    <meta property="profile:first_name" content="{{ explode(' ', $author->name)[0] }}">
+    <meta property="profile:last_name" content="{{ count(explode(' ', $author->name)) > 1 ? explode(' ', $author->name)[1] : '' }}">
+    <meta property="profile:username" content="{{ $author->slug }}">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary">
+    <meta property="twitter:url" content="{{ url()->current() }}">
+    <meta property="twitter:title" content="{{ $author->name }} - Články autora na Movie Context">
+    <meta property="twitter:description" content="{{ Str::limit($author->bio, 155) }}">
+    <meta property="twitter:image" content="{{ $author->avatar_path ? asset('storage/' . $author->avatar_path) : asset('images/default-author.jpg') }}">
+
+    <!-- Schema.org JSON-LD -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "ProfilePage",
+        "mainEntity": {
+            "@type": "Person",
+            "name": "{{ $author->name }}",
+            "description": "{{ $author->bio }}",
+            "image": "{{ $author->avatar_path ? asset('storage/' . $author->avatar_path) : asset('images/default-author.jpg') }}",
+            "url": "{{ route('author.show', $author->slug) }}",
+            "knowsAbout": "{{ ucfirst(str_replace('_', ' ', $author->specialization)) }}",
+            "hasOccupation": {
+                "@type": "Occupation",
+                "name": "Filmový kritik",
+                "occupationLocation": {
+                    "@type": "Country",
+                    "name": "Slovensko"
+                }
+            }
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "Movie Context",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "{{ asset('images/logo.png') }}",
+                "width": 200,
+                "height": 60
+            }
+        },
+        "breadcrumb": {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+                {
+                    "@type": "ListItem",
+                    "position": 1,
+                    "name": "Domov",
+                    "item": "{{ url('/') }}"
+                },
+                {
+                    "@type": "ListItem",
+                    "position": 2,
+                    "name": "{{ $author->name }}",
+                    "item": "{{ url()->current() }}"
+                }
+            ]
+        }
+    }
+    </script>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">

@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             AuthorSeeder::class,
             SourceSeeder::class,
             ArticleSeeder::class,
+            AffiliateLinkSeeder::class,
         ]);
     }
 }

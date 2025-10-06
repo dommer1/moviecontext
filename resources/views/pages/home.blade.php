@@ -7,6 +7,53 @@
 
     <title>Movie Context - Najnovšie filmové novinky a recenzie</title>
     <meta name="description" content="Najnovšie filmové novinky, recenzie a správy z filmového sveta">
+    <link rel="canonical" href="{{ url()->current() }}">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:title" content="Movie Context - Najnovšie filmové novinky a recenzie">
+    <meta property="og:description" content="Najnovšie filmové novinky, recenzie a správy z filmového sveta">
+    <meta property="og:image" content="{{ asset('images/og-homepage.jpg') }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="Movie Context">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{{ url()->current() }}">
+    <meta property="twitter:title" content="Movie Context - Najnovšie filmové novinky a recenzie">
+    <meta property="twitter:description" content="Najnovšie filmové novinky, recenzie a správy z filmového sveta">
+    <meta property="twitter:image" content="{{ asset('images/og-homepage.jpg') }}">
+
+    <!-- Schema.org JSON-LD -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Movie Context",
+        "description": "Najnovšie filmové novinky, recenzie a správy z filmového sveta",
+        "url": "{{ url('/') }}",
+        "publisher": {
+            "@type": "Organization",
+            "name": "Movie Context",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "{{ asset('images/logo.png') }}",
+                "width": 200,
+                "height": 60
+            }
+        },
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "{{ url('/search?q={search_term_string}') }}"
+            },
+            "query-input": "required name=search_term_string"
+        }
+    }
+    </script>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">

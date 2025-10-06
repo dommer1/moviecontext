@@ -36,7 +36,7 @@ class ArticleSeeder extends Seeder
                     'imdb_id' => 'tt15398776',
                     'csfd_url' => 'https://www.csfd.cz/film/1189434-oppenheimer/',
                     'czech_release_date' => '2023-07-20',
-                    'streaming_platforms' => ['Netflix', 'HBO Max'],
+                    'streaming_platforms' => ['netflix', 'hbo'],
                     'fun_fact' => 'Film Oppenheimer sa nakrúcal na 70 rôznych miestach po celom svete, vrátane skutočných lokalít spojených s Manhattan Project.',
                 ],
             ],
@@ -55,7 +55,7 @@ class ArticleSeeder extends Seeder
                     'imdb_id' => 'tt1517268',
                     'csfd_url' => 'https://www.csfd.cz/film/1189435-barbie/',
                     'czech_release_date' => '2023-07-20',
-                    'streaming_platforms' => ['HBO Max', 'Disney+'],
+                    'streaming_platforms' => ['hbo', 'disney'],
                     'fun_fact' => 'Film Barbie obsahuje viac ako 200 ružových odtieňov a bol nakrúcaný v Warner Bros. štúdiách, kde boli vytvorené celé Barbie Land.',
                 ],
             ],
@@ -74,7 +74,7 @@ class ArticleSeeder extends Seeder
                     'imdb_id' => 'tt5537002',
                     'csfd_url' => 'https://www.csfd.cz/film/1189436-killers-of-the-flower-moon/',
                     'czech_release_date' => '2023-10-20',
-                    'streaming_platforms' => ['Apple TV+', 'Disney+'],
+                    'streaming_platforms' => ['apple', 'disney'],
                     'fun_fact' => 'Film Killers of the Flower Moon sa nakrúcal v Oklahome na pôvodných miestach, kde sa odohrávali skutočné udalosti.',
                 ],
             ],
@@ -90,7 +90,7 @@ class ArticleSeeder extends Seeder
                 'author_id' => $authors->where('specialization', 'skeptical_expert')->first()->id ?? 3,
                 'tags' => ['horor', 'Netflix', 'streaming', 'recenzie'],
                 'metadata' => [
-                    'streaming_platforms' => ['Netflix'],
+                    'streaming_platforms' => ['netflix'],
                     'fun_fact' => 'Netflix produkuje viac hororov ako ktorékoľvek iné štúdio. V roku 2023 vyšlo viac ako 20 pôvodných hororov na platforme.',
                 ],
             ],
@@ -109,7 +109,7 @@ class ArticleSeeder extends Seeder
                     'imdb_id' => 'tt1757678',
                     'csfd_url' => 'https://www.csfd.cz/film/1189437-avatar-3/',
                     'czech_release_date' => '2025-12-19',
-                    'streaming_platforms' => ['Disney+'],
+                    'streaming_platforms' => ['disney'],
                     'fun_fact' => 'James Cameron osobne strávil 8 rokov vývojom technológií pre Avatar. Filmová séria stála už viac ako 1 miliardu dolárov.',
                 ],
             ],
@@ -125,7 +125,7 @@ class ArticleSeeder extends Seeder
                 'author_id' => $authors->where('specialization', 'skeptical_expert')->first()->id ?? 3,
                 'tags' => ['sci-fi', 'Disney+', 'streaming', 'sprievodca'],
                 'metadata' => [
-                    'streaming_platforms' => ['Disney+'],
+                    'streaming_platforms' => ['disney'],
                     'fun_fact' => 'Disney vlastní viac ako 30 sci-fi filmov a sérií. Ich kolekcia zahŕňa všetko od Star Wars po Marvel Cinematic Universe.',
                 ],
             ],
@@ -136,22 +136,30 @@ class ArticleSeeder extends Seeder
             $metadataData = $articleData['metadata'] ?? [];
             unset($articleData['tags'], $articleData['metadata']);
 
-            $article = Article::create($articleData);
+            $article = Article::updateOrCreate(
+                ['slug' => $articleData['slug']],
+                $articleData
+            );
 
-            // Attach tags
+            // Sync tags
             if (! empty($tagsData)) {
+                $tagIds = [];
                 foreach ($tagsData as $tagName) {
                     $tag = Tag::firstOrCreate(
                         ['name' => $tagName],
                         ['slug' => \Illuminate\Support\Str::slug($tagName), 'type' => 'genre']
                     );
-                    $article->tags()->attach($tag);
+                    $tagIds[] = $tag->id;
                 }
+                $article->tags()->sync($tagIds);
             }
 
-            // Create metadata
+            // Create/update metadata
             if (! empty($metadataData)) {
-                ArticleMetadata::create(array_merge($metadataData, ['article_id' => $article->id]));
+                ArticleMetadata::updateOrCreate(
+                    ['article_id' => $article->id],
+                    $metadataData
+                );
             }
         }
     }

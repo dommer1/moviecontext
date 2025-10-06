@@ -15,21 +15,21 @@ class SourceSeeder extends Seeder
             // České/Slovenské zdroje (menej)
             [
                 'name' => 'ČSFD.cz',
-                'url' => 'https://www.csfd.cz/',
+                'url' => 'https://www.csfd.cz/novinky/',
                 'type' => 'review',
                 'language' => 'cs',
                 'active' => true,
             ],
             [
                 'name' => 'TotalFilm.cz',
-                'url' => 'https://www.totalfilm.cz/',
+                'url' => 'https://www.totalfilm.cz/category/vsechny-clanky/',
                 'type' => 'review',
                 'language' => 'cs',
                 'active' => true,
             ],
             [
                 'name' => 'Kinema.sk',
-                'url' => 'https://www.kinema.sk/',
+                'url' => 'https://www.kinema.sk/novinky',
                 'type' => 'news',
                 'language' => 'sk',
                 'active' => true,
@@ -45,7 +45,7 @@ class SourceSeeder extends Seeder
             ],
             [
                 'name' => 'Rotten Tomatoes',
-                'url' => 'https://www.rottentomatoes.com/',
+                'url' => 'https://editorial.rottentomatoes.com/',
                 'type' => 'review',
                 'language' => 'en',
                 'active' => true,
@@ -59,21 +59,21 @@ class SourceSeeder extends Seeder
             ],
             [
                 'name' => 'Variety',
-                'url' => 'https://variety.com/',
+                'url' => 'https://variety.com/v/film/news/',
                 'type' => 'news',
                 'language' => 'en',
                 'active' => true,
             ],
             [
                 'name' => 'The Hollywood Reporter',
-                'url' => 'https://www.hollywoodreporter.com/',
+                'url' => 'https://www.hollywoodreporter.com/c/movies/',
                 'type' => 'news',
                 'language' => 'en',
                 'active' => true,
             ],
             [
                 'name' => 'Deadline Hollywood',
-                'url' => 'https://deadline.com/',
+                'url' => 'https://deadline.com/v/film/',
                 'type' => 'news',
                 'language' => 'en',
                 'active' => true,

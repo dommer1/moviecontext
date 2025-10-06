@@ -5,8 +5,103 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ $article->title }} - Movie Context</title>
+    <title>{{ $article->seo_title ?? $article->title }} - Movie Context</title>
     <meta name="description" content="{{ $article->seo_description ?? $article->excerpt }}">
+    <link rel="canonical" href="{{ url()->current() }}">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:title" content="{{ $article->seo_title ?? $article->title }}">
+    <meta property="og:description" content="{{ $article->seo_description ?? $article->excerpt }}">
+    <meta property="og:image" content="{{ $article->featured_image_path ? asset('storage/' . $article->featured_image_path) : asset('images/default-movie.jpg') }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="Movie Context">
+    <meta property="article:published_time" content="{{ $article->published_at?->toISOString() }}">
+    <meta property="article:modified_time" content="{{ $article->updated_at->toISOString() }}">
+    <meta property="article:author" content="{{ $article->author->name }}">
+    @foreach($article->tags as $tag)
+    <meta property="article:tag" content="{{ $tag->name }}">
+    @endforeach
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{{ url()->current() }}">
+    <meta property="twitter:title" content="{{ $article->seo_title ?? $article->title }}">
+    <meta property="twitter:description" content="{{ $article->seo_description ?? $article->excerpt }}">
+    <meta property="twitter:image" content="{{ $article->featured_image_path ? asset('storage/' . $article->featured_image_path) : asset('images/default-movie.jpg') }}">
+
+    <!-- Schema.org JSON-LD -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "{{ $article->seo_title ?? $article->title }}",
+        "description": "{{ $article->seo_description ?? $article->excerpt }}",
+        "image": {
+            "@type": "ImageObject",
+            "url": "{{ $article->featured_image_path ? asset('storage/' . $article->featured_image_path) : asset('images/default-movie.jpg') }}",
+            "width": 1200,
+            "height": 630
+        },
+        "datePublished": "{{ $article->published_at?->toISOString() }}",
+        "dateModified": "{{ $article->updated_at->toISOString() }}",
+        "author": {
+            "@type": "Person",
+            "name": "{{ $article->author->name }}",
+            "url": "{{ route('author.show', $article->author->slug) }}"
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "Movie Context",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "{{ asset('images/logo.png') }}",
+                "width": 200,
+                "height": 60
+            }
+        },
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "{{ url()->current() }}"
+        },
+        "keywords": "{{ $article->tags->pluck('name')->join(', ') }}",
+        "articleSection": "Filmové novinky",
+        "wordCount": "{{ str_word_count($article->content) }}",
+        "timeRequired": "PT{{ $article->reading_time }}M",
+        "url": "{{ url()->current() }}",
+        "breadcrumb": {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+                {
+                    "@type": "ListItem",
+                    "position": 1,
+                    "name": "Domov",
+                    "item": "{{ url('/') }}"
+                },
+                {
+                    "@type": "ListItem",
+                    "position": 2,
+                    "name": "{{ $article->author->name }}",
+                    "item": "{{ route('author.show', $article->author->slug) }}"
+                },
+                {
+                    "@type": "ListItem",
+                    "position": 3,
+                    "name": "{{ $article->title }}",
+                    "item": "{{ url()->current() }}"
+                }
+            ]
+        }
+        @if($article->metadata && $article->metadata->imdb_id)
+        ,"sameAs": [
+            "{{ $article->metadata->imdb_id ? 'https://www.imdb.com/title/' . $article->metadata->imdb_id : null }}",
+            "{{ $article->metadata->csfd_url }}"
+        ]
+        @endif
+    }
+    </script>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -95,6 +190,12 @@
 
                                                 <div class="text-lg leading-relaxed pb-12 sm:text-xl sm:leading-relaxed sm:pb-16"><p>{{ $article->excerpt }}</p>
 </div>
+
+                        @if($article->metadata && $article->metadata->streaming_platforms)
+                            <div class="pb-8">
+                                <x-streaming-platforms :platforms="$article->metadata->streaming_platforms" />
+                            </div>
+                        @endif
 
                         <figure class="pb-12 sm:pb-16">
                                                                                     <img width="1024" height="576" src="https://via.placeholder.com/1024x576?text={{ urlencode($article->title) }}" class="attachment-large size-large w-full h-full object-cover" alt="" decoding="async" fetchpriority="high">

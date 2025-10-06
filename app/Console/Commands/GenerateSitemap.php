@@ -57,7 +57,7 @@ class GenerateSitemap extends Command
 
         foreach ($articles as $article) {
             $urls[] = [
-                'loc' => url('/' . $article->slug),
+                'loc' => route('article.show', $article->slug),
                 'lastmod' => $article->published_at->toISOString(),
                 'changefreq' => 'weekly',
                 'priority' => '0.8',
@@ -65,10 +65,10 @@ class GenerateSitemap extends Command
         }
 
         // Add author pages
-        $authors = \App\Models\Author::active()->get();
+        $authors = \App\Models\Author::where('active', true)->get();
         foreach ($authors as $author) {
             $urls[] = [
-                'loc' => url('/autor/' . $author->slug),
+                'loc' => route('author.show', $author->slug),
                 'lastmod' => $author->updated_at->toISOString(),
                 'changefreq' => 'monthly',
                 'priority' => '0.6',
@@ -79,20 +79,36 @@ class GenerateSitemap extends Command
         $tags = \App\Models\Tag::all();
         foreach ($tags as $tag) {
             $urls[] = [
-                'loc' => url('/tag/' . $tag->slug),
+                'loc' => route('tag.show', $tag->slug),
                 'lastmod' => $tag->updated_at->toISOString(),
                 'changefreq' => 'weekly',
                 'priority' => '0.4',
             ];
         }
 
+        // Add static pages
+        $staticPages = [
+            ['route' => 'cookies', 'changefreq' => 'yearly', 'priority' => '0.1'],
+            ['route' => 'privacy', 'changefreq' => 'yearly', 'priority' => '0.1'],
+            ['route' => 'terms', 'changefreq' => 'yearly', 'priority' => '0.1'],
+        ];
+
+        foreach ($staticPages as $page) {
+            $urls[] = [
+                'loc' => route($page['route']),
+                'lastmod' => now()->toISOString(),
+                'changefreq' => $page['changefreq'],
+                'priority' => $page['priority'],
+            ];
+        }
+
         // Generate XML
-        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
 
         foreach ($urls as $url) {
             $xml .= "  <url>\n";
-            $xml .= "    <loc>" . htmlspecialchars($url['loc']) . "</loc>\n";
+            $xml .= '    <loc>'.htmlspecialchars($url['loc'])."</loc>\n";
             $xml .= "    <lastmod>{$url['lastmod']}</lastmod>\n";
             $xml .= "    <changefreq>{$url['changefreq']}</changefreq>\n";
             $xml .= "    <priority>{$url['priority']}</priority>\n";
