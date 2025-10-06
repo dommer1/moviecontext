@@ -132,7 +132,13 @@ class ResearchService
             try {
                 // Simplified implementation - in production would use streaming APIs
                 $platforms = ['Netflix', 'HBO Max', 'Disney+', 'Apple TV+', 'Amazon Prime'];
-                $available = array_rand(array_flip($platforms), rand(0, 3));
+                $numPlatforms = rand(0, 3);
+                if ($numPlatforms > 0) {
+                    $selected = array_rand(array_flip($platforms), $numPlatforms);
+                    $available = is_array($selected) ? $selected : [$selected];
+                } else {
+                    $available = [];
+                }
 
                 return [
                     'streaming_platforms' => array_values($available),
@@ -172,6 +178,8 @@ class ResearchService
         $allGenres = ['Action', 'Adventure', 'Comedy', 'Drama', 'Horror', 'Thriller', 'Romance', 'Sci-Fi', 'Fantasy', 'Documentary'];
         $count = rand(1, 3);
 
-        return array_rand(array_flip($allGenres), $count);
+        $selected = array_rand(array_flip($allGenres), $count);
+
+        return is_array($selected) ? $selected : [$selected];
     }
 }

@@ -67,11 +67,18 @@ class SourcesTable
                     ->icon('heroicon-o-arrow-path')
                     ->color('info')
                     ->action(function ($record) {
-                        // Run scrape:single command
-                        \Artisan::call('scrape:single', ['source_id' => $record->id]);
+                        // Run scrape:single command with no interaction
+                        \Artisan::call('scrape:single', [
+                            'source_id' => $record->id,
+                            '--no-interaction' => true,
+                        ]);
+
+                        // Get command output
+                        $output = \Artisan::output();
+
                         \Filament\Notifications\Notification::make()
                             ->title('Scraping completed')
-                            ->body('Check the command output for results.')
+                            ->body('Command output: '.$output)
                             ->success()
                             ->send();
                     }),

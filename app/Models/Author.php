@@ -26,4 +26,9 @@ class Author extends Model
     {
         return $this->hasMany(Article::class);
     }
+
+    public function scopeActive($query)
+    {
+        return $query->where('active', true);
+    }
 }
