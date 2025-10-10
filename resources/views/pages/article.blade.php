@@ -122,7 +122,7 @@
                         @endif
 
                         <figure class="pb-12 sm:pb-16">
-                                                                                    <img width="1024" height="576" src="https://via.placeholder.com/1024x576?text={{ urlencode($article->title) }}" class="attachment-large size-large w-full h-full object-cover" alt="" decoding="async" fetchpriority="high">
+                                                                                    <img width="1024" height="576" src="{{ $article->featured_image_url ?: 'https://via.placeholder.com/1024x576?text=' . urlencode($article->title) }}" class="attachment-large size-large w-full h-full object-cover" alt="{{ $article->title }}" decoding="async" fetchpriority="high">
                                                                                         <figcaption class="text-xs text-gray-300 pl-2 mt-2 border-l-2 border-gray-300">
                                     Newsletter {{ $article->author->name }}. (Foto: Kontext Media)
                                 </figcaption>
@@ -230,22 +230,36 @@
                             </ul>
                         </div>
 
-                        <div x-show="!showShortContext" class="single-post-content">
-                            <div class="text-lg leading-relaxed">
-                                {!! nl2br(e($article->content)) !!}
-                            </div>
-
-                            <!-- Fun Fact Section -->
-                            @if($article->metadata && $article->metadata->fun_fact)
-                                <div class="mt-8 bg-green-400 p-6 before:absolute before:inset-0 before:gradient-1 before:-translate-y-full sm:p-8 subscription-block">
-                                    <h2 class="text-2xl leading-snug font-bold">Tento článok je dostupný po registrácii.</h2>
-                                    <p class="lg:text-lg">Bezplatnou registráciou získate prístup k redakciou vybraným článkom a pravidelnému týždennému newsletteru.</p>
-                                    <div class="inline-flex gap-2 items-center">
-                                        <a href="#" class="inline-block text-sm font-bold text-white bg-blue px-4 py-2 transition-colors duration-150 hover:text-blue hover:bg-white">Zaregistrovať sa</a>
-                                    </div>
-                                </div>
-                            @endif
+                        <div x-show="!showShortContext" class="prose max-w-none
+                            prose-p:py-3
+                            prose-ul:py-3 prose-ul:pl-4 prose-ul:list-disc
+                            prose-ol:py-3 prose-ol:pl-4 prose-ol:list-decimal
+                            prose-strong:font-bold
+                            prose-a:text-cyan-500 prose-a:underline
+                            prose-img:py-10 prose-img:w-full
+                            prose-blockquote:my-10 prose-blockquote:relative prose-blockquote:bg-gray-200 prose-blockquote:text-lg prose-blockquote:leading-relaxed prose-blockquote:px-6 prose-blockquote:py-12
+                            prose-blockquote:sm:text-xl prose-blockquote:sm:leading-relaxed
+                            prose-blockquote:md:text-2xl prose-blockquote:md:leading-8 prose-blockquote:md:px-10 prose-blockquote:md:py-16
+                            prose-blockquote-cite:block prose-blockquote-cite:text-lg prose-blockquote-cite:italic prose-blockquote-cite:pt-3
+                            prose-h1:text-3xl prose-h1:font-bold prose-h1:leading-tight prose-h1:pt-4 lg:prose-h1:text-4xl
+                            prose-h2:text-2xl prose-h2:font-bold prose-h2:leading-8 prose-h2:pt-4 lg:prose-h2:text-3xl
+                            prose-h3:text-xl prose-h3:font-bold prose-h3:leading-7 prose-h3:pt-4 lg:prose-h3:text-2xl lg:prose-h3:leading-8
+                            prose-h4:text-lg prose-h4:font-bold prose-h4:leading-7 prose-h4:pt-4 lg:prose-h4:text-xl lg:prose-h4:leading-7
+                            prose-h5:text-base prose-h5:font-bold prose-h5:leading-6 prose-h5:pt-4 lg:prose-h5:text-lg lg:prose-h5:leading-7
+                            prose-iframe:py-8
+                            text-base leading-relaxed lg:prose-lg lg:text-xl lg:leading-relaxed">
+                            {!! strip_tags($article->content, '<p><a><strong><em><ul><ol><li><h1><h2><h3><h4><h5><h6><img><figure><figcaption><blockquote><cite><code><pre><table><thead><tbody><tfoot><tr><td><th>') !!}
                         </div>
+
+
+                        <div class="mt-8 bg-green-400 p-6 before:absolute before:inset-0 before:gradient-1 before:-translate-y-full sm:p-8 subscription-block">
+                            <h2 class="text-2xl leading-snug font-bold">Nechajte si posielať naše články priamo do emailu!</h2>
+                            <p class="lg:text-lg">Prihláste sa na náš bezplatný newsletter a získajte prístup k exkluzívnemu obsahu, skorým informáciám o nových filmoch a pravidelným filmovým odporúčaniam.</p>
+                            <div class="inline-flex gap-2 items-center">
+                                <a href="#newsletter-signup" class="inline-block text-sm font-bold text-white bg-blue px-4 py-2 transition-colors duration-150 hover:text-blue hover:bg-white">Prihlásiť sa na newsletter</a>
+                            </div>
+                        </div>
+
 
                         <div class="space-y-4 py-8 border-b border-blue">
                             <h3 class="font-bold text-center lg:text-lg lg:text-left">Zdielať článok</h3>
@@ -427,97 +441,4 @@
         </section>
     </main>
 
-    <!-- Footer -->
-    <footer class="text-white bg-blue-900">
-        <div class="max-w-7xl w-full px-6 mx-auto">
-            <div class="py-12 border-b border-gray-600 lg:py-20">
-                <div class="flex flex-col gap-12 lg:flex-row lg:justify-between lg:gap-28">
-                    <ul class="grid gap-8 lg:grid-cols-4 lg:gap-12">
-                        <li>
-                            <div class="font-bold text-xl mb-4">Movie Context</div>
-                        </li>
-
-                        <li class="lg:hidden">
-                            <button type="button" class="flex justify-between items-center w-full">
-                                <span class="font-bold lg:text-lg">O nás</span>
-                                <svg class="size-4 fill-current transform transition-transform duration-150">
-                                    <use href="#chevron-down"></use>
-                                </svg>
-                            </button>
-                        </li>
-
-                        <li class="hidden space-y-6 lg:block">
-                            <h3 class="text-lg font-bold">O nás</h3>
-                            <ul class="space-y-4">
-                                <li>
-                                    <a href="#" class="text-sm transition-colors duration-150 hover:text-green-400">Predplatné</a>
-                                </li>
-                                <li>
-                                    <a href="#" class="text-sm transition-colors duration-150 hover:text-green-400">Pre študentov</a>
-                                </li>
-                                <li>
-                                    <a href="#" class="text-sm transition-colors duration-150 hover:text-green-400">Podpora</a>
-                                </li>
-                                <li>
-                                    <a href="#" class="text-sm transition-colors duration-150 hover:text-green-400">Kontakt</a>
-                                </li>
-                            </ul>
-                        </li>
-
-                        <li class="lg:hidden">
-                            <button type="button" class="flex justify-between items-center w-full">
-                                <span class="font-bold lg:text-lg">Spolupráca</span>
-                                <svg class="size-4 fill-current transform transition-transform duration-150">
-                                    <use href="#chevron-down"></use>
-                                </svg>
-                            </button>
-                        </li>
-
-                        <li class="hidden space-y-6 lg:block">
-                            <h3 class="text-lg font-bold">Spolupráca</h3>
-                            <ul class="space-y-4">
-                                <li>
-                                    <a href="#" class="text-sm transition-colors duration-150 hover:text-green-400">Inzercia a spolupráce</a>
-                                </li>
-                                <li>
-                                    <a href="#" class="text-sm transition-colors duration-150 hover:text-green-400">Tiráž</a>
-                                </li>
-                                <li>
-                                    <a href="#" class="text-sm transition-colors duration-150 hover:text-green-400">Copyright a citovanie</a>
-                                </li>
-                            </ul>
-                        </li>
-                    </ul>
-
-                    <div class="max-w-full md:max-w-[420px]">
-                        <h3 class="text-lg font-bold pb-4">Prihlásiť</h3>
-                        <p class="pb-6">Prihláste sa na odber bezplatného týždenného newslettra Movie Context.</p>
-                        <div class="flex flex-col w-full space-y-2">
-                            <div class="flex flex-col gap-2 sm:flex-row sm:gap-4">
-                                <input type="email" name="newsletter_email" class="w-full text-white bg-transparent p-3 border-[1.5px] border-gray-400 transition-all duration-150 placeholder:text-gray-400 focus:outline-none focus:border-white focus:ring-2 focus:ring-green-400/40 focus:ring-offset-2 focus:ring-offset-blue-900" placeholder="Zadajte svoj e-mail">
-                                <a href="#" class="font-bold whitespace-nowrap px-6 py-3 border-[1.5px] border-gray-400 text-white transition-all duration-150 hover:text-white hover:bg-green-400 hover:border-green-400 focus:outline-none focus:border-white focus:ring-2 focus:ring-green-400/40 focus:ring-offset-2 focus:ring-offset-blue-900">Prihlásiť sa</a>
-                            </div>
-                            <p class="text-sm">Prihlásením potvrdzujem, že som sa oboznámil s pravidlami ochrany osobných údajov.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex flex-col items-center gap-6 py-8 lg:flex-row lg:justify-between">
-                <div class="flex flex-col items-center gap-6 lg:flex-row">
-                    <p class="text-sm">© Copyright {{ date('Y') }} | Movie Context.</p>
-                    <ul class="flex flex-col items-center gap-2 sm:flex-row sm:gap-6">
-                        <li>
-                            <a href="#" class="text-sm underline text-gray-200 transition-colors duration-150 hover:text-green-400">Obchodné podmienky</a>
-                        </li>
-                        <li>
-                            <a href="#" class="text-sm underline text-gray-200 transition-colors duration-150 hover:text-green-400">Ochrana osobných údajov</a>
-                        </li>
-                        <li>
-                            <a href="#" class="text-sm underline text-gray-200 transition-colors duration-150 hover:text-green-400">Cookies</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
 @endsection

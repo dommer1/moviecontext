@@ -176,7 +176,7 @@
                         </li>
                     </ul>
 
-                    <div class="max-w-full md:max-w-[420px]">
+                    <div class="max-w-full md:max-w-[420px]" id="newsletter-signup">
                         <h3 class="text-lg font-bold pb-4">Prihlásiť</h3>
                         <p class="pb-6">Prihláste sa na odber bezplatného týždenného newslettra Movie Context.</p>
                         <div class="flex flex-col w-full space-y-2">

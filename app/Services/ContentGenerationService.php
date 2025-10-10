@@ -55,13 +55,22 @@ class ContentGenerationService
                 $slug = Str::of($slug)->slug('-')->limit(80, '');
             }
 
+            // Získať obrázok pre článok
+            $imageService = app(ImageService::class);
+            $featuredImagePath = $imageService->getImageForArticle(
+                $generationResult['headline'] ?? $scrapedArticle->title,
+                $scrapedArticle->image_url,
+                $researchData
+            );
+
             $article = Article::create([
                 'title' => $generationResult['headline'] ?? $this->generateTitle($scrapedArticle, $researchData),
                 'slug' => $slug && ! Article::where('slug', $slug)->exists()
                     ? $slug
                     : $this->generateSlug($scrapedArticle->title),
                 'content' => $content,
-                'excerpt' => $this->generateExcerpt($content),
+                'excerpt' => $generationResult['excerpt'] ?? $this->generateExcerpt($content),
+                'featured_image_path' => $featuredImagePath,
                 'seo_title' => $generationResult['page_title'] ?? $this->generateSEOTitle($scrapedArticle->title),
                 'seo_description' => $generationResult['meta_description'] ?? $this->generateSEODescription($content),
                 'author_id' => $author->id,
@@ -110,12 +119,13 @@ class ContentGenerationService
      */
     private function getFullArticleContent(ScrapedArticle $scrapedArticle): array
     {
+        // Always try to download the full article first
         if ($scrapedArticle->original_url) {
             try {
                 $html = $this->downloadArticleHtml($scrapedArticle->original_url);
                 if ($html) {
                     $processed = $this->cleanHtmlForAI($html, $scrapedArticle->title);
-                    if (strlen($processed['text']) > 300) {
+                    if (strlen($processed['text']) > 500) { // Increased threshold
                         return $processed;
                     }
                 }
@@ -124,15 +134,35 @@ class ContentGenerationService
             }
         }
 
+        // Fallback to HTML snapshot if available
         if ($scrapedArticle->html_snapshot && strlen($scrapedArticle->html_snapshot) > 0) {
             $processed = $this->cleanHtmlForAI($scrapedArticle->html_snapshot, $scrapedArticle->title);
-            if (strlen($processed['text']) > 300) {
+            if (strlen($processed['text']) > 200) { // Lower threshold for snapshot
                 return $processed;
             }
         }
 
+        // Last resort: combine summary with any available data
+        $baseText = $scrapedArticle->content_summary ?? '';
+
+        // If we have research data, add it to provide more context
+        $researchData = $this->researchService->gatherFilmData(
+            $scrapedArticle->title,
+            $baseText
+        );
+
+        if (! empty($researchData['genres'])) {
+            $baseText .= ' Žáner: '.implode(', ', $researchData['genres']).'.';
+        }
+        if (! empty($researchData['cast'])) {
+            $baseText .= ' Herci: '.implode(', ', array_slice($researchData['cast'], 0, 3)).'.';
+        }
+        if (! empty($researchData['director'])) {
+            $baseText .= ' Režisér: '.$researchData['director'].'.';
+        }
+
         return [
-            'text' => $scrapedArticle->content_summary ?? '',
+            'text' => $baseText,
             'embeds' => [],
         ];
     }
@@ -175,21 +205,57 @@ class ContentGenerationService
             }
         }
 
-        $paragraphs = [];
-        if (preg_match_all('/<p[^>]*>(.*?)<\/p>/is', $html, $matches)) {
-            foreach ($matches[1] as $paragraph) {
-                $clean = trim(strip_tags($paragraph));
-                if (strlen($clean) > 50) {
-                    $paragraphs[] = $clean;
+        $contentParts = [];
+
+        // Extract headings
+        if (preg_match_all('/<h[1-6][^>]*>(.*?)<\/h[1-6]>/is', $html, $headingMatches)) {
+            foreach ($headingMatches[1] as $heading) {
+                $clean = trim(strip_tags($heading));
+                if (strlen($clean) > 10) {
+                    $contentParts[] = 'Nadpis: '.$clean;
                 }
             }
         }
 
-        if (empty($paragraphs)) {
-            $paragraphs[] = strip_tags($html);
+        // Extract paragraphs
+        if (preg_match_all('/<p[^>]*>(.*?)<\/p>/is', $html, $matches)) {
+            foreach ($matches[1] as $paragraph) {
+                $clean = trim(strip_tags($paragraph));
+                if (strlen($clean) > 50) {
+                    $contentParts[] = $clean;
+                }
+            }
         }
 
-        $plainText = implode("\n\n", $paragraphs);
+        // Extract list items
+        if (preg_match_all('/<li[^>]*>(.*?)<\/li>/is', $html, $listMatches)) {
+            $listItems = [];
+            foreach ($listMatches[1] as $item) {
+                $clean = trim(strip_tags($item));
+                if (strlen($clean) > 20) {
+                    $listItems[] = $clean;
+                }
+            }
+            if (! empty($listItems)) {
+                $contentParts[] = 'Zoznam: '.implode('; ', $listItems);
+            }
+        }
+
+        // Extract divs with substantial content
+        if (empty($contentParts) && preg_match_all('/<div[^>]*>(.*?)<\/div>/is', $html, $divMatches)) {
+            foreach ($divMatches[1] as $div) {
+                $clean = trim(strip_tags($div));
+                if (strlen($clean) > 100) {
+                    $contentParts[] = $clean;
+                }
+            }
+        }
+
+        if (empty($contentParts)) {
+            $contentParts[] = strip_tags($html);
+        }
+
+        $plainText = implode("\n\n", $contentParts);
 
         $plainText = preg_replace('/Všimli sme si[^\n]+CSFD\.sk\?/iu', '', $plainText);
         $plainText = str_ireplace('zpět na všechny novinky', '', $plainText);
@@ -197,7 +263,7 @@ class ContentGenerationService
         $plainText = preg_replace('/\s+/', ' ', $plainText);
         $plainText = preg_replace('/(\.|\?|!)\s*(?=[A-ZÁČĎÉĚÍĹĽŇÓÔŘŔŠŤÚŮÝŽ])/u', "$1 \n\n", $plainText);
 
-        $plainText = substr(trim($plainText), 0, 4000);
+        $plainText = substr(trim($plainText), 0, 8000); // Increased limit
 
         return [
             'text' => $plainText,

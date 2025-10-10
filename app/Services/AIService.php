@@ -64,10 +64,10 @@ class AIService
             ]);
 
             $response = Prism::text()
-                ->using(Provider::OpenAI, 'gpt-5')
+                ->using(Provider::OpenAI, 'gpt-3.5-turbo')
                 ->withSystemPrompt($this->getGenerationSystemPrompt($data['author']))
                 ->withPrompt($prompt)
-                ->withMaxTokens(10000)
+                ->withMaxTokens(8000)
                 ->generate();
 
             $raw = trim($response->text);
@@ -91,6 +91,7 @@ class AIService
             return [
                 'slug' => $decoded['slug'] ?? null,
                 'content' => $decoded['content'] ?? '',
+                'excerpt' => $decoded['excerpt'] ?? null,
                 'headline' => $decoded['headline'] ?? null,
                 'page_title' => $decoded['page_title'] ?? null,
                 'meta_description' => $decoded['meta_description'] ?? null,
@@ -203,7 +204,7 @@ PROMPT;
                "Write in Czech language. Your personality: {$author['personality_prompt']}. ".
                "Writing style: {$author['writing_style_prompt']}. ".
                'Always include Czech film context and streaming availability when relevant. '.
-               'Respond ONLY with valid JSON containing: slug, content (HTML), headline, page_title, meta_description, tags (array).';
+               'Respond ONLY with valid JSON containing: slug, content (HTML), excerpt, headline, page_title, meta_description, tags (array).';
     }
 
     private function getGenerationPrompt(array $data): string
@@ -227,7 +228,8 @@ PROMPT;
 Analyze the provided article content and additional research data. Then produce ONLY JSON with the following structure:
 {
   "slug": "...",
-  "content": "<p>…</p>",
+  "content": "<h2>…</h2><p>…</p><h3>…</h3><p>…</p>…",
+  "excerpt": "...",
   "headline": "…",
   "page_title": "…",
   "meta_description": "…",
@@ -236,7 +238,9 @@ Analyze the provided article content and additional research data. Then produce 
 
 Requirements:
 - "slug" must be URL-safe (lowercase, hyphen separated, max 80 chars).
-- "content" musí byť HTML (odseky, nadpisy) s rozsahom 400-600 slov v češtine.
+- "content" musí byť dobre štruktúrované HTML (H2, H3 nadpisy, odseky, prípadne zoznamy) s rozsahom 400-600 slov v češtine.
+- Štruktúra článku: H2 hlavné sekcie, H3 podsekcie, <p> odseky, <ul>/<ol> zoznamy ak je to vhodné.
+- "excerpt" musí byť 120-150 znakov v češtine, chytľavý teaser pre homepage/kategórie (bez HTML).
 - "headline" musí byť chytľavý SEO titul, max 60 znakov.
 - "page_title" max 60 znakov, vhodný pre title tag.
 - "meta_description" 140-160 znakov, vystihuje článok.

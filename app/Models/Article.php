@@ -61,6 +61,16 @@ class Article extends Model
     public function getReadingTimeAttribute(): int
     {
         $words = str_word_count(strip_tags($this->content));
+
         return ceil($words / 200); // Assuming 200 words per minute
+    }
+
+    public function getFeaturedImageUrlAttribute(): ?string
+    {
+        if (! $this->featured_image_path) {
+            return null;
+        }
+
+        return asset('storage/'.$this->featured_image_path);
     }
 }
