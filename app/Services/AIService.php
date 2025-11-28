@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Exception;
+use Illuminate\Support\Facades\Log;
 use Prism\Prism\Enums\Provider;
 use Prism\Prism\Prism;
 
@@ -10,8 +11,9 @@ class AIService
 {
     /**
      * Extract articles from HTML content using AI
+     * Optionally suggests author for each article in the same prompt
      */
-    public function extractArticlesFromHtml(string $html, string $sourceUrl): array
+    public function extractArticlesFromHtml(string $html, string $sourceUrl, ?array $authors = null): array
     {
         try {
             // Clean and truncate HTML content to fit within token limits
@@ -19,8 +21,8 @@ class AIService
 
             $response = Prism::text()
                 ->using(Provider::OpenAI, 'gpt-3.5-turbo')
-                ->withSystemPrompt($this->getExtractionSystemPrompt())
-                ->withPrompt($this->getExtractionPrompt($cleanedContent, $sourceUrl))
+                ->withSystemPrompt($this->getExtractionSystemPrompt($authors !== null))
+                ->withPrompt($this->getExtractionPrompt($cleanedContent, $sourceUrl, $authors))
                 ->generate();
 
             // Clean the response - remove markdown code blocks if present
@@ -39,7 +41,17 @@ class AIService
             $result = json_decode($cleanedResponse, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new Exception('Invalid JSON response from AI: '.json_last_error_msg().'. Raw response: '.substr($response->text, 0, 500));
+                // Try to fix JSON by escaping unescaped quotes in strings
+                $fixed = $this->fixJsonString($cleanedResponse);
+                $result = json_decode($fixed, true);
+
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    Log::error('JSON parsing failed after fix attempt in extraction', [
+                        'error' => json_last_error_msg(),
+                        'raw_preview' => substr($cleanedResponse, 0, 1000),
+                    ]);
+                    throw new Exception('Invalid JSON response from AI: '.json_last_error_msg().'. Raw response: '.substr($response->text, 0, 500));
+                }
             }
 
             return $result['articles'] ?? [];
@@ -56,7 +68,7 @@ class AIService
         try {
             $prompt = $this->getGenerationPrompt($data);
 
-            \Log::info('AI Generation Input:', [
+            Log::info('AI Generation Input:', [
                 'title' => $data['scraped_article']['title'] ?? 'Unknown',
                 'full_content_length' => strlen($data['full_content'] ?? ''),
                 'content_summary_length' => strlen($data['scraped_article']['content_summary'] ?? ''),
@@ -67,7 +79,7 @@ class AIService
                 ->using(Provider::OpenAI, 'gpt-3.5-turbo')
                 ->withSystemPrompt($this->getGenerationSystemPrompt($data['author']))
                 ->withPrompt($prompt)
-                ->withMaxTokens(8000)
+                ->withMaxTokens(10000)
                 ->generate();
 
             $raw = trim($response->text);
@@ -81,8 +93,24 @@ class AIService
             if (str_ends_with($raw, '```')) {
                 $raw = substr($raw, 0, -3);
             }
+            $raw = trim($raw);
 
+            // Try to parse JSON, if it fails, try to fix it
             $decoded = json_decode($raw, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                // Try to fix JSON by escaping unescaped quotes in strings
+                $fixed = $this->fixJsonString($raw);
+                $decoded = json_decode($fixed, true);
+
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    Log::error('JSON parsing failed after fix attempt', [
+                        'error' => json_last_error_msg(),
+                        'raw_preview' => substr($raw, 0, 1000),
+                    ]);
+                    throw new Exception('AI generation returned invalid JSON: '.json_last_error_msg().'. Raw response preview: '.substr($raw, 0, 500));
+                }
+            }
 
             if (! is_array($decoded)) {
                 throw new Exception('AI generation returned invalid JSON. Raw response: '.substr($response->text, 0, 500));
@@ -157,29 +185,47 @@ class AIService
         return substr(trim($text), 0, 15000);
     }
 
-    private function getExtractionSystemPrompt(): string
+    private function getExtractionSystemPrompt(bool $includeAuthorSuggestion = false): string
     {
-        return 'You are an expert at extracting film-related articles from web pages. '.
+        $basePrompt = 'You are an expert at extracting film-related articles from web pages. '.
                'You analyze HTML content with structural tags (headings, paragraphs, lists) and identify articles about movies, reviews, news, and streaming. '.
-               'Use the HTML structure to better understand content hierarchy and context. '.
-               'Return ONLY valid JSON without any markdown formatting, code blocks, or explanations. '.
+               'Use the HTML structure to better understand content hierarchy and context.';
+
+        if ($includeAuthorSuggestion) {
+            $basePrompt .= ' Additionally, you match each article with the most suitable author based on their specialization, writing style, and personality.';
+        }
+
+        $basePrompt .= ' Return ONLY valid JSON without any markdown formatting, code blocks, or explanations. '.
                'If no film articles are found, return {"articles": []}.';
+
+        return $basePrompt;
     }
 
-    private function getExtractionPrompt(string $html, string $sourceUrl): string
+    private function getExtractionPrompt(string $html, string $sourceUrl, ?array $authors = null): string
     {
-        return <<<PROMPT
-Analyze this HTML content from {$sourceUrl} and extract all film-related articles.
-The content includes structural HTML tags (headings, paragraphs, lists) that help identify article structure.
+        $authorsSection = '';
+        $jsonFormat = '';
 
-Requirements:
-- Only extract articles about movies, film reviews, news, or streaming content
-- Use HTML structure (h1, h2, p, ul, li tags) to understand content hierarchy
-- Skip navigation, ads, comments, and non-film content
-- Extract the main article content (first 2-3 paragraphs)
-- Include publication date if available
-- Return ONLY valid JSON in this exact format without any additional text:
-
+        if ($authors !== null && ! empty($authors)) {
+            $authorsJson = json_encode($authors, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+            $authorsSection = "\n\nAvailable Authors (for matching with articles):\n{$authorsJson}\n\nFor each article, determine which author is most suitable based on:\n- Article type (review, news, streaming guide, etc.)\n- Film genre and tone\n- Target audience\n- Author's specialization and writing style\n- Author's personality and expertise";
+            $jsonFormat = <<<'JSON'
+{
+  "articles": [
+    {
+      "title": "Article Title",
+      "content_summary": "First 2-3 paragraphs of content...",
+      "author_name": "Author Name (if available)",
+      "published_at": "2024-01-01 10:00:00",
+      "image_url": "https://example.com/image.jpg (if available)",
+      "article_url": "https://example.com/article-url",
+      "suggested_author_id": 1
+    }
+  ]
+}
+JSON;
+        } else {
+            $jsonFormat = <<<'JSON'
 {
   "articles": [
     {
@@ -192,6 +238,22 @@ Requirements:
     }
   ]
 }
+JSON;
+        }
+
+        return <<<PROMPT
+Analyze this HTML content from {$sourceUrl} and extract all film-related articles.
+The content includes structural HTML tags (headings, paragraphs, lists) that help identify article structure.
+
+Requirements:
+- Only extract articles about movies, film reviews, news, or streaming content
+- Use HTML structure (h1, h2, p, ul, li tags) to understand content hierarchy
+- Skip navigation, ads, comments, and non-film content
+- Extract the main article content (first 2-3 paragraphs)
+- Include publication date if available{$authorsSection}
+- Return ONLY valid JSON in this exact format without any additional text:
+
+{$jsonFormat}
 
 HTML Content:
 {$html}
@@ -204,7 +266,8 @@ PROMPT;
                "Write in Czech language. Your personality: {$author['personality_prompt']}. ".
                "Writing style: {$author['writing_style_prompt']}. ".
                'Always include Czech film context and streaming availability when relevant. '.
-               'Respond ONLY with valid JSON containing: slug, content (HTML), excerpt, headline, page_title, meta_description, tags (array).';
+               'CRITICAL: Write COMPLETE, FULL articles. NEVER use ellipsis (...) or truncate content. Every paragraph must be fully written. '.
+               'Respond ONLY with valid JSON containing: slug, content (complete HTML article), excerpt, headline, page_title, meta_description, tags (array).';
     }
 
     private function getGenerationPrompt(array $data): string
@@ -227,26 +290,28 @@ PROMPT;
         return <<<PROMPT
 Analyze the provided article content and additional research data. Then produce ONLY JSON with the following structure:
 {
-  "slug": "...",
-  "content": "<h2>…</h2><p>…</p><h3>…</h3><p>…</p>…",
-  "excerpt": "...",
-  "headline": "…",
-  "page_title": "…",
-  "meta_description": "…",
-  "tags": ["tag1", "tag2", …]
+  "slug": "example-slug-here",
+  "content": "<h2>Complete Article Title</h2><p>Full first paragraph with complete content...</p><h3>Subsection Title</h3><p>Full second paragraph with complete content...</p>",
+  "excerpt": "Complete excerpt text here",
+  "headline": "Complete Headline Here",
+  "page_title": "Complete Page Title Here",
+  "meta_description": "Complete meta description here",
+  "tags": ["tag1", "tag2", "tag3"]
 }
 
-Requirements:
-- "slug" must be URL-safe (lowercase, hyphen separated, max 80 chars).
-- "content" musí byť dobre štruktúrované HTML (H2, H3 nadpisy, odseky, prípadne zoznamy) s rozsahom 400-600 slov v češtine.
-- Štruktúra článku: H2 hlavné sekcie, H3 podsekcie, <p> odseky, <ul>/<ol> zoznamy ak je to vhodné.
-- "excerpt" musí byť 120-150 znakov v češtine, chytľavý teaser pre homepage/kategórie (bez HTML).
-- "headline" musí byť chytľavý SEO titul, max 60 znakov.
-- "page_title" max 60 znakov, vhodný pre title tag.
-- "meta_description" 140-160 znakov, vystihuje článok.
-- "tags" obsahuje 3-6 krátkych kľúčových fráz (bez #).
-- Streaming info spomeň iba, ak to text priamo obsahuje.
-- Nepoužívaj markdown, iba HTML v "content".
+CRITICAL REQUIREMENTS:
+- "content" MUST contain the COMPLETE, FULL article text. NEVER use ellipsis (...) or truncate content. Write the entire article from start to finish.
+- "content" must be well-structured HTML (H2, H3 headings, paragraphs, optionally lists) with 400-600 words in Czech.
+- Article structure: H2 for main sections, H3 for subsections, <p> for paragraphs, <ul>/<ol> for lists when appropriate.
+- Write the COMPLETE article - every paragraph must be fully written, no placeholders, no "...", no truncation.
+- "excerpt" must be 120-150 characters in Czech, engaging teaser for homepage/categories (no HTML).
+- "headline" must be engaging SEO title, max 60 characters.
+- "page_title" max 60 characters, suitable for title tag - engaging SEO headline.
+- "meta_description" 140-160 characters, captures the article essence.
+- "tags" contains 3-6 short key phrases (no #).
+- Mention streaming info only if the text directly contains it.
+- Do NOT use markdown, only HTML in "content".
+- NEVER use ellipsis (...) or "..." in the content field - always write complete, full paragraphs.
 
 Relevantné dáta:
 Title: {$title}
@@ -275,5 +340,67 @@ Return JSON with:
   "fun_fact": "Interesting fact about the film..."
 }
 PROMPT;
+    }
+
+    /**
+     * Attempt to fix JSON string by escaping unescaped quotes in string values
+     */
+    private function fixJsonString(string $json): string
+    {
+        $result = '';
+        $length = strlen($json);
+        $inString = false;
+        $escapeNext = false;
+        $stringStart = 0;
+
+        for ($i = 0; $i < $length; $i++) {
+            $char = $json[$i];
+            $nextChar = $i < $length - 1 ? $json[$i + 1] : '';
+
+            if ($escapeNext) {
+                // Previous char was backslash, this char is escaped
+                $result .= $char;
+                $escapeNext = false;
+
+                continue;
+            }
+
+            if ($char === '\\') {
+                // Escape character
+                $escapeNext = true;
+                $result .= $char;
+
+                continue;
+            }
+
+            if ($char === '"') {
+                if (! $inString) {
+                    // Starting a string
+                    $inString = true;
+                    $stringStart = $i;
+                    $result .= $char;
+                } else {
+                    // Check if this is the end of string or a quote inside string
+                    // Look ahead to see if next non-whitespace char is : , } ] or end of line
+                    $j = $i + 1;
+                    while ($j < $length && in_array($json[$j], ["\n", "\r", "\t", ' '], true)) {
+                        $j++;
+                    }
+
+                    if ($j >= $length || in_array($json[$j], [':', ',', '}', ']'], true)) {
+                        // This is the end of string
+                        $inString = false;
+                        $result .= $char;
+                    } else {
+                        // This is an unescaped quote inside a string - escape it
+                        $result .= '\\"';
+                    }
+                }
+            } else {
+                $result .= $char;
+            }
+        }
+
+        return $result;
     }
 }

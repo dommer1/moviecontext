@@ -18,6 +18,7 @@ class ScrapedArticle extends Model
         'html_snapshot',
         'status',
         'source_id',
+        'suggested_author_id',
     ];
 
     protected $casts = [
@@ -32,5 +33,10 @@ class ScrapedArticle extends Model
     public function article(): HasOne
     {
         return $this->hasOne(Article::class);
+    }
+
+    public function suggestedAuthor(): BelongsTo
+    {
+        return $this->belongsTo(Author::class, 'suggested_author_id');
     }
 }

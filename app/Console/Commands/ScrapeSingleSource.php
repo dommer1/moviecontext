@@ -49,9 +49,20 @@ class ScrapeSingleSource extends Command
 
             $this->info('HTML downloaded successfully ('.strlen($html).' characters)');
 
-            // Extract articles using AI
+            // Get all active authors for AI suggestion
+            $authors = \App\Models\Author::active()->get()->map(function ($author) {
+                return [
+                    'id' => $author->id,
+                    'name' => $author->name,
+                    'specialization' => $author->specialization,
+                    'personality_prompt' => $author->personality_prompt,
+                    'writing_style_prompt' => $author->writing_style_prompt,
+                ];
+            })->toArray();
+
+            // Extract articles using AI (with author suggestion in the same prompt)
             $aiService = app(\App\Services\AIService::class);
-            $extractedArticles = $aiService->extractArticlesFromHtml($html, $source->url);
+            $extractedArticles = $aiService->extractArticlesFromHtml($html, $source->url, $authors);
 
             $this->info('AI extracted '.count($extractedArticles).' articles:');
 
@@ -59,6 +70,10 @@ class ScrapeSingleSource extends Command
                 $this->line(($index + 1).'. '.($article['title'] ?? 'No title'));
                 $this->line('   URL: '.($article['article_url'] ?? 'N/A'));
                 $this->line('   Author: '.($article['author_name'] ?? 'N/A'));
+                if (isset($article['suggested_author_id'])) {
+                    $suggestedAuthor = collect($authors)->firstWhere('id', $article['suggested_author_id']);
+                    $this->line('   Suggested Author: '.($suggestedAuthor['name'] ?? 'N/A').' (ID: '.$article['suggested_author_id'].')');
+                }
                 $this->line('   Summary: '.substr($article['content_summary'] ?? '', 0, 100).'...');
                 $this->newLine();
             }
@@ -81,6 +96,7 @@ class ScrapeSingleSource extends Command
                             'html_snapshot' => $html,
                             'status' => 'pending',
                             'source_id' => $source->id,
+                            'suggested_author_id' => $articleData['suggested_author_id'] ?? null,
                         ]);
                         $savedCount++;
                     } catch (\Exception $e) {

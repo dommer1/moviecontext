@@ -31,6 +31,7 @@ class ScrapeSources extends Command
 
         if ($sources->isEmpty()) {
             $this->warn('No active sources found.');
+
             return;
         }
 
@@ -65,13 +66,24 @@ class ScrapeSources extends Command
         // Download HTML content
         $html = $this->downloadHtml($source->url);
 
-        if (!$html) {
+        if (! $html) {
             return 0;
         }
 
-        // Extract articles using AI
+        // Get all active authors for AI suggestion
+        $authors = \App\Models\Author::active()->get()->map(function ($author) {
+            return [
+                'id' => $author->id,
+                'name' => $author->name,
+                'specialization' => $author->specialization,
+                'personality_prompt' => $author->personality_prompt,
+                'writing_style_prompt' => $author->writing_style_prompt,
+            ];
+        })->toArray();
+
+        // Extract articles using AI (with author suggestion in the same prompt)
         $aiService = app(\App\Services\AIService::class);
-        $extractedArticles = $aiService->extractArticlesFromHtml($html, $source->url);
+        $extractedArticles = $aiService->extractArticlesFromHtml($html, $source->url, $authors);
 
         // Save extracted articles
         $savedCount = 0;
@@ -89,6 +101,7 @@ class ScrapeSources extends Command
                     'html_snapshot' => $html,
                     'status' => 'pending',
                     'source_id' => $source->id,
+                    'suggested_author_id' => $articleData['suggested_author_id'] ?? null,
                 ]);
                 $savedCount++;
             } catch (\Exception $e) {
@@ -111,12 +124,13 @@ class ScrapeSources extends Command
                     'timeout' => 30,
                     'user_agent' => 'MovieContext-Bot/1.0 (+https://moviecontext.test)',
                     'header' => 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                ]
+                ],
             ]);
 
             return file_get_contents($url, false, $context);
         } catch (\Exception $e) {
             \Log::warning("Failed to download HTML from {$url}: {$e->getMessage()}");
+
             return null;
         }
     }

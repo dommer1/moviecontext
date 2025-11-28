@@ -8,6 +8,7 @@ use App\Models\Author;
 use App\Models\ScrapedArticle;
 use App\Models\Tag;
 use Exception;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class ContentGenerationService
@@ -23,7 +24,9 @@ class ContentGenerationService
     public function generateArticle(ScrapedArticle $scrapedArticle): ?Article
     {
         try {
-            $author = $this->selectAuthorForArticle($scrapedArticle);
+            // Use suggested author if available, otherwise use selection logic
+            $author = $scrapedArticle->suggestedAuthor
+                ?? $this->selectAuthorForArticle($scrapedArticle);
 
             $contentData = $this->getFullArticleContent($scrapedArticle);
             $articleText = $contentData['text'];
@@ -108,9 +111,113 @@ class ContentGenerationService
             return $article;
         } catch (Exception $e) {
             $scrapedArticle->update(['status' => 'error']);
-            \Log::error("Article generation failed for scraped article {$scrapedArticle->id}: {$e->getMessage()}");
+            Log::error("Article generation failed for scraped article {$scrapedArticle->id}: {$e->getMessage()}");
 
             return null;
+        }
+    }
+
+    /**
+     * Regenerate existing article from its scraped article
+     */
+    public function regenerateArticle(Article $article): bool
+    {
+        try {
+            $scrapedArticle = $article->scrapedArticle;
+            if (! $scrapedArticle) {
+                throw new Exception('Article does not have associated scraped article.');
+            }
+
+            // Use suggested author if available, otherwise use selection logic
+            $author = $scrapedArticle->suggestedAuthor
+                ?? $this->selectAuthorForArticle($scrapedArticle);
+
+            $contentData = $this->getFullArticleContent($scrapedArticle);
+            $articleText = $contentData['text'];
+            $embeds = $contentData['embeds'];
+
+            $researchData = $this->researchService->gatherFilmData(
+                $scrapedArticle->title,
+                $articleText
+            );
+
+            $generationResult = $this->aiService->generateArticle([
+                'author' => $author->toArray(),
+                'scraped_article' => $scrapedArticle->toArray(),
+                'full_content' => $articleText,
+                'research' => $researchData,
+            ]);
+
+            $content = $generationResult['content'] ?? '';
+            if (empty($content)) {
+                throw new Exception('AI returned empty content field.');
+            }
+
+            if (! empty($embeds)) {
+                $content .= "\n\n".implode("\n\n", $embeds);
+            }
+
+            $slug = $generationResult['slug'] ?? null;
+            if ($slug) {
+                $slug = Str::of($slug)->slug('-')->limit(80, '');
+            }
+
+            // Získať obrázok pre článok
+            $imageService = app(ImageService::class);
+            $featuredImagePath = $imageService->getImageForArticle(
+                $generationResult['headline'] ?? $scrapedArticle->title,
+                $scrapedArticle->image_url,
+                $researchData
+            );
+
+            // Update existing article
+            $article->update([
+                'title' => $generationResult['headline'] ?? $this->generateTitle($scrapedArticle, $researchData),
+                'slug' => $slug && ! Article::where('slug', $slug)->where('id', '!=', $article->id)->exists()
+                    ? $slug
+                    : $article->slug, // Keep existing slug if new one conflicts
+                'content' => $content,
+                'excerpt' => $generationResult['excerpt'] ?? $this->generateExcerpt($content),
+                'featured_image_path' => $featuredImagePath,
+                'seo_title' => $generationResult['page_title'] ?? $this->generateSEOTitle($scrapedArticle->title),
+                'seo_description' => $generationResult['meta_description'] ?? $this->generateSEODescription($content),
+                'author_id' => $author->id,
+            ]);
+
+            // Update tags
+            if (! empty($generationResult['tags'])) {
+                $tags = collect($generationResult['tags'])
+                    ->map(function ($tag) {
+                        $name = ucfirst($tag);
+                        $slug = Str::slug($tag);
+
+                        $existing = Tag::where('slug', $slug)->first();
+                        if ($existing) {
+                            return $existing->id;
+                        }
+
+                        $knownTypes = ['genre', 'actor', 'director'];
+                        $assignedType = $knownTypes[array_rand($knownTypes)];
+
+                        return Tag::create([
+                            'name' => $name,
+                            'slug' => $slug,
+                            'type' => $assignedType,
+                        ])->id;
+                    });
+
+                $article->tags()->sync($tags);
+            }
+
+            // Update metadata (delete old and create new)
+            $article->metadata?->delete();
+            $this->createMetadata($article, $researchData);
+
+            return true;
+        } catch (Exception $e) {
+            Log::error("Article regeneration failed for article {$article->id}: {$e->getMessage()}");
+
+            return false;
         }
     }
 
@@ -130,7 +237,7 @@ class ContentGenerationService
                     }
                 }
             } catch (Exception $e) {
-                \Log::warning("Failed to download full article from {$scrapedArticle->original_url}: {$e->getMessage()}");
+                Log::warning("Failed to download full article from {$scrapedArticle->original_url}: {$e->getMessage()}");
             }
         }
 
@@ -208,11 +315,13 @@ class ContentGenerationService
         $contentParts = [];
 
         // Extract headings
-        if (preg_match_all('/<h[1-6][^>]*>(.*?)<\/h[1-6]>/is', $html, $headingMatches)) {
-            foreach ($headingMatches[1] as $heading) {
+        if (preg_match_all('/<h([1-6])[^>]*>(.*?)<\/h[1-6]>/is', $html, $headingMatches, PREG_SET_ORDER)) {
+            foreach ($headingMatches as $match) {
+                $level = $match[1];
+                $heading = $match[2];
                 $clean = trim(strip_tags($heading));
                 if (strlen($clean) > 10) {
-                    $contentParts[] = 'Nadpis: '.$clean;
+                    $contentParts[] = 'Nadpis H'.$level.': '.$clean;
                 }
             }
         }
